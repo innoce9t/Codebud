@@ -48,17 +48,9 @@ export default function App() {
         <Route path="/ai-models" element={<AiModels />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/profile" element={<Profile />} />
+        {/* IDE lives in the shell too, but the sidebar shows collapsed there */}
+        <Route path="/project/:id" element={<Editor />} />
       </Route>
-
-      {/* Full-screen IDE (its own layout, no app sidebar) */}
-      <Route
-        path="/project/:id"
-        element={
-          <Protected>
-            <Editor />
-          </Protected>
-        }
-      />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

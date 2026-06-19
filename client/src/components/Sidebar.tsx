@@ -25,9 +25,10 @@ const NAV = [
 interface Props {
   collapsed: boolean;
   onToggle: () => void;
+  locked?: boolean;
 }
 
-export default function Sidebar({ collapsed, onToggle }: Props) {
+export default function Sidebar({ collapsed, onToggle, locked = false }: Props) {
   const { user, logout } = useAuth();
   const nav = useNavigate();
   const initial = (user?.name || user?.email || '?').charAt(0).toUpperCase();
@@ -39,22 +40,32 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
       }`}
     >
       {/* Header / logo + collapse toggle */}
-      <div className="flex h-14 items-center justify-between border-b border-slate-200 px-3">
-        {!collapsed && (
-          <button onClick={() => nav('/')} className="flex items-center gap-2 font-bold text-slate-900">
+      <div
+        className={`flex h-14 items-center border-b border-slate-200 px-3 ${
+          collapsed ? 'justify-center' : 'justify-between'
+        }`}
+      >
+        {(!collapsed || locked) && (
+          <button
+            onClick={() => nav('/')}
+            className="flex items-center gap-2 font-bold text-slate-900"
+            title="CodeBud — home"
+          >
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-white">
               <Code2 className="h-4 w-4" />
             </span>
-            CodeBud
+            {!collapsed && 'CodeBud'}
           </button>
         )}
-        <button
-          onClick={onToggle}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-        </button>
+        {!locked && (
+          <button
+            onClick={onToggle}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+          </button>
+        )}
       </div>
 
       {/* New project button */}

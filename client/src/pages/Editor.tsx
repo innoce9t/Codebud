@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { History, PanelBottom, PanelBottomClose } from 'lucide-react';
-import TopBar from '../components/TopBar';
 import FileExplorer from '../components/FileExplorer';
 import CodeEditor from '../components/CodeEditor';
 import ChatPanel from '../components/ChatPanel';
@@ -137,21 +136,20 @@ export default function Editor() {
   const MetaIcon = meta.Icon;
 
   return (
-    <div className="flex h-screen flex-col">
-      <TopBar>
-        <span className="text-slate-300">/</span>
+    <div className="flex h-full flex-col">
+      <header className="flex h-12 items-center gap-2 border-b border-slate-200 bg-white px-4">
         <button
           onClick={() => nav(`/workspace/${project.type}`)}
-          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800"
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800"
         >
           <MetaIcon className={`h-4 w-4 ${meta.accent}`} /> {meta.title.replace(' Workspace', '')}
         </button>
         <span className="text-slate-300">/</span>
-        <span className="font-medium text-slate-900">{project.name}</span>
-        <span className="ml-3 text-xs text-slate-400">
+        <span className="text-sm font-medium text-slate-900">{project.name}</span>
+        <span className="ml-2 text-xs text-slate-400">
           {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : ''}
         </span>
-      </TopBar>
+      </header>
 
       <div className="flex min-h-0 flex-1">
         {/* Explorer */}
