@@ -1,6 +1,9 @@
 services:
+  # Local MongoDB — only started when you opt in with: docker compose --profile local-db up
+  # By default the app uses MONGODB_URI from the root .env (e.g. MongoDB Atlas).
   mongo:
     image: mongo:7
+    profiles: ["local-db"]
     restart: unless-stopped
     volumes:
       - mongo-data:/data/db
@@ -13,13 +16,11 @@ services:
   server:
     build: ./server
     restart: unless-stopped
-    depends_on:
-      mongo:
-        condition: service_healthy
     environment:
       PORT: "4000"
       NODE_ENV: production
-      MONGODB_URI: mongodb://mongo:27017/codebud
+      # Defaults to the local-db container; override via root .env to use Atlas.
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/codebud}
       CLIENT_ORIGIN: http://localhost:8080
       COOKIE_SECURE: "false" # served over plain HTTP in this compose setup
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}

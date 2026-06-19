@@ -97,21 +97,29 @@ The repo ships a production-style stack — **MongoDB**, the **API**, and the
 **client served by nginx** (which reverse-proxies `/api` and `/socket.io` to the
 API, so everything is same-origin).
 
+### Option A — MongoDB Atlas (default)
+Put your Atlas connection string in a root `.env` (Compose reads it automatically):
+```ini
+MONGODB_URI=mongodb+srv://USER:PASS@cluster0.xxxx.mongodb.net/codebud?retryWrites=true&w=majority
+JWT_SECRET=please-change-me
+AI_PROVIDER=mock          # or anthropic / openai
+ANTHROPIC_API_KEY=sk-ant-...
+```
+Then:
 ```bash
 docker compose up -d --build
 ```
+Make sure your machine's IP is allowlisted in **Atlas → Network Access**.
 
-Then open **http://localhost:8080**.
+### Option B — local MongoDB container (no Atlas)
+Spin up a bundled MongoDB instead, via the `local-db` profile:
+```bash
+docker compose --profile local-db up -d --build
+```
+If `MONGODB_URI` is unset, the server falls back to the `mongo` container, whose
+data persists in the `mongo-data` volume.
 
-- No local Node or MongoDB needed — only Docker.
-- Defaults to the **mock AI provider**. To enable real AI, create a `.env` in the
-  repo root (Compose reads it automatically):
-  ```ini
-  AI_PROVIDER=anthropic
-  ANTHROPIC_API_KEY=sk-ant-...
-  JWT_SECRET=please-change-me
-  ```
-- Mongo data persists in the `mongo-data` volume.
+Either way, open **http://localhost:8080** — no local Node needed, only Docker.
 
 ```bash
 docker compose logs -f server   # tail API logs
