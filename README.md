@@ -91,6 +91,38 @@ npm start              # serves the compiled API
 
 ---
 
+## 🐳 Run with Docker
+
+The repo ships a production-style stack — **MongoDB**, the **API**, and the
+**client served by nginx** (which reverse-proxies `/api` and `/socket.io` to the
+API, so everything is same-origin).
+
+```bash
+docker compose up -d --build
+```
+
+Then open **http://localhost:8080**.
+
+- No local Node or MongoDB needed — only Docker.
+- Defaults to the **mock AI provider**. To enable real AI, create a `.env` in the
+  repo root (Compose reads it automatically):
+  ```ini
+  AI_PROVIDER=anthropic
+  ANTHROPIC_API_KEY=sk-ant-...
+  JWT_SECRET=please-change-me
+  ```
+- Mongo data persists in the `mongo-data` volume.
+
+```bash
+docker compose logs -f server   # tail API logs
+docker compose down             # stop (add -v to also wipe the DB volume)
+```
+
+> The compose setup serves over plain HTTP, so it sets `COOKIE_SECURE=false`.
+> Behind HTTPS in real production, drop that override so auth cookies require TLS.
+
+---
+
 ## 🔌 API overview
 
 | Method | Endpoint | Purpose |

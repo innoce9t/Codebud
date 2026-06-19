@@ -3,6 +3,9 @@ dist/
 build/
 .env
 .env.local
+# Credential / secret files (e.g. MongoDB Atlas onboarding output)
+*credentials*.env
+atlas-credentials.env
 *.log
 .DS_Store
 coverage/

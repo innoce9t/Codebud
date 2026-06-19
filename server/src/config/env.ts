@@ -22,6 +22,12 @@ export const env = {
   mongoUri: required('MONGODB_URI', 'mongodb://127.0.0.1:27017/codebud'),
   jwtSecret: required('JWT_SECRET', 'super-secret-change-me'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
+  // Whether auth cookies require HTTPS. Defaults to NODE_ENV=production, but can
+  // be overridden (e.g. COOKIE_SECURE=false when serving over plain HTTP in Docker).
+  cookieSecure:
+    process.env.COOKIE_SECURE !== undefined
+      ? process.env.COOKIE_SECURE === 'true'
+      : process.env.NODE_ENV === 'production',
   ai: {
     provider: (process.env.AI_PROVIDER ?? 'mock') as 'anthropic' | 'openai' | 'mock',
     anthropicKey: process.env.ANTHROPIC_API_KEY ?? '',

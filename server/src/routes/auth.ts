@@ -4,7 +4,7 @@ import { User } from '../models/User.js';
 import { signToken, COOKIE_NAME } from '../utils/jwt.js';
 import { asyncHandler, unauthorized } from '../utils/http.js';
 import { requireAuth } from '../middleware/auth.js';
-import { isProd } from '../config/env.js';
+import { env } from '../config/env.js';
 
 const router = Router();
 
@@ -16,7 +16,7 @@ const credsSchema = z.object({
 
 const cookieOpts = {
   httpOnly: true,
-  secure: isProd,
+  secure: env.cookieSecure,
   sameSite: 'lax' as const,
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
