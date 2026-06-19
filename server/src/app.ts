@@ -8,6 +8,7 @@ import projectRoutes from './routes/projects.js';
 import fileRoutes from './routes/files.js';
 import chatRoutes from './routes/chat.js';
 import catalogRoutes from './routes/catalog.js';
+import aiRoutes from './routes/ai.js';
 
 export function createApp() {
   const app = express();
@@ -22,6 +23,7 @@ export function createApp() {
 
   app.use('/api/auth', authRoutes);
   app.use('/api/templates', catalogRoutes);
+  app.use('/api/ai', aiRoutes);
   app.use('/api/projects', projectRoutes);
   // Nested resources reuse :projectId from the parent path.
   app.use('/api/projects/:projectId/files', fileRoutes);

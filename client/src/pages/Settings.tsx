@@ -2,14 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bot, Moon, Sun } from 'lucide-react';
 import { PageHeader, Button } from '../components/ui';
-import { systemApi, type HealthInfo } from '../api';
+import { aiApi } from '../api';
 import { useAuth } from '../auth';
-
-const PROVIDER_LABEL: Record<string, string> = {
-  anthropic: 'Claude (Anthropic)',
-  openai: 'OpenAI',
-  mock: 'Mock (no key)',
-};
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -32,10 +26,16 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export default function Settings() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
-  const [health, setHealth] = useState<HealthInfo | null>(null);
+  const [activeModelName, setActiveModelName] = useState<string | null>(null);
 
   useEffect(() => {
-    systemApi.health().then(setHealth).catch(() => setHealth(null));
+    aiApi
+      .catalog()
+      .then((c) => {
+        const m = c.providers.flatMap((p) => p.models).find((m) => m.id === c.activeModel);
+        setActiveModelName(m ? m.name : null);
+      })
+      .catch(() => setActiveModelName(null));
   }, []);
 
   return (
@@ -66,11 +66,11 @@ export default function Settings() {
         </Card>
 
         <Card title="AI">
-          <Row label="Active provider">
+          <Row label="Active model">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
                 <Bot className="h-4 w-4 text-brand-600" />
-                {health ? PROVIDER_LABEL[health.aiProvider] ?? health.aiProvider : '…'}
+                {activeModelName ?? 'Default assistant'}
               </span>
               <Button variant="subtle" className="!py-1 !px-2 text-xs" onClick={() => nav('/ai-models')}>
                 Manage

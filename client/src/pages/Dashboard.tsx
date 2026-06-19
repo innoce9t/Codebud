@@ -3,25 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Bot, FolderGit2, Plus } from 'lucide-react';
 import { PageHeader, Button, Spinner } from '../components/ui';
 import { WORKSPACES } from '../workspaceMeta';
-import { projectApi, systemApi, type HealthInfo } from '../api';
+import { aiApi, projectApi } from '../api';
 import type { Project } from '../types';
 import { useAuth } from '../auth';
-
-const PROVIDER_LABEL: Record<string, string> = {
-  anthropic: 'Claude (Anthropic)',
-  openai: 'OpenAI',
-  mock: 'Mock (no key)',
-};
 
 export default function Dashboard() {
   const nav = useNavigate();
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[] | null>(null);
-  const [health, setHealth] = useState<HealthInfo | null>(null);
+  const [activeModelName, setActiveModelName] = useState<string | null>(null);
 
   useEffect(() => {
     projectApi.list().then(setProjects);
-    systemApi.health().then(setHealth).catch(() => setHealth(null));
+    aiApi
+      .catalog()
+      .then((c) => {
+        const m = c.providers.flatMap((p) => p.models).find((m) => m.id === c.activeModel);
+        setActiveModelName(m ? m.name : null);
+      })
+      .catch(() => setActiveModelName(null));
   }, []);
 
   const counts: Record<string, number> = {};
@@ -79,15 +79,17 @@ export default function Dashboard() {
           </button>
         </div>
         <p className="mt-2 text-sm text-slate-500">
-          {health ? (
+          {activeModelName ? (
             <>
-              Connected provider:{' '}
-              <span className="font-medium text-slate-800">
-                {PROVIDER_LABEL[health.aiProvider] ?? health.aiProvider}
-              </span>
+              Active model: <span className="font-medium text-slate-800">{activeModelName}</span>
             </>
           ) : (
-            'Checking provider status…'
+            <>
+              No model selected — using the default assistant.{' '}
+              <button onClick={() => nav('/ai-models')} className="font-medium text-brand-600 hover:underline">
+                Connect a provider
+              </button>
+            </>
           )}
         </p>
       </div>

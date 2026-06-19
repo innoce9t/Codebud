@@ -49,3 +49,27 @@ export interface TemplateMeta {
   name: string;
   description: string;
 }
+
+export type AiProvider = 'anthropic' | 'openai' | 'google';
+
+export interface CatalogModel {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface CatalogProvider {
+  id: AiProvider;
+  name: string;
+  vendor: string;
+  getKeyUrl: string;
+  getKeyLabel: string;
+  models: CatalogModel[];
+  connected: boolean;
+  last4: string | null;
+}
+
+export interface AiCatalog {
+  providers: CatalogProvider[];
+  activeModel: string | null;
+}

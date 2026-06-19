@@ -3,8 +3,10 @@ import { env } from '../../config/env.js';
 import type { AiProvider, AiRequest } from './types.js';
 import { buildSystemPrompt, buildContextMessage } from './prompt.js';
 
-export function createAnthropicProvider(): AiProvider {
-  const client = new Anthropic({ apiKey: env.ai.anthropicKey });
+/** Anthropic provider. apiKey/model default to the env config when omitted. */
+export function createAnthropicProvider(apiKey?: string, model?: string): AiProvider {
+  const client = new Anthropic({ apiKey: apiKey || env.ai.anthropicKey });
+  const chosenModel = model || env.ai.anthropicModel;
   return {
     name: 'anthropic',
     async complete(req: AiRequest) {
@@ -14,7 +16,7 @@ export function createAnthropicProvider(): AiProvider {
         { role: 'user', content: req.message },
       ];
       const res = await client.messages.create({
-        model: env.ai.anthropicModel,
+        model: chosenModel,
         max_tokens: 4096,
         system: buildSystemPrompt(req),
         messages,

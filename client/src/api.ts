@@ -7,6 +7,8 @@ import type {
   User,
   FileVersion,
   TemplateMeta,
+  AiProvider,
+  AiCatalog,
 } from './types';
 
 export const http = axios.create({
@@ -40,6 +42,15 @@ export const authApi = {
     http.post<{ user: User }>('/auth/login', data).then((r) => r.data.user),
   logout: () => http.post('/auth/logout').then(() => undefined),
   me: () => http.get<{ user: User }>('/auth/me').then((r) => r.data.user),
+};
+
+export const aiApi = {
+  catalog: () => http.get<AiCatalog>('/ai/catalog').then((r) => r.data),
+  connect: (provider: AiProvider, apiKey: string) =>
+    http.put(`/ai/providers/${provider}`, { apiKey }).then(() => undefined),
+  disconnect: (provider: AiProvider) =>
+    http.delete(`/ai/providers/${provider}`).then(() => undefined),
+  setActive: (model: string) => http.put('/ai/active', { model }).then(() => undefined),
 };
 
 export const templateApi = {

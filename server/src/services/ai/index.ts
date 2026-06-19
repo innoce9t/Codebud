@@ -1,26 +1,28 @@
 import { env } from '../../config/env.js';
-import type { AiProvider, AiRequest, AiResponse } from './types.js';
+import type { AiProvider, AiRequest, AiResponse, ProviderConfig } from './types.js';
 import { parseAiResponse } from './parse.js';
 import { createMockProvider } from './mock.js';
 import { createAnthropicProvider } from './anthropic.js';
 import { createOpenAiProvider } from './openai.js';
+import { createGoogleProvider } from './google.js';
 
-let provider: AiProvider;
+let envProvider: AiProvider;
 
-function getProvider(): AiProvider {
-  if (provider) return provider;
+/** The server-wide default provider (env-configured), used when the user has no active model. */
+function getEnvProvider(): AiProvider {
+  if (envProvider) return envProvider;
   switch (env.ai.provider) {
     case 'anthropic':
-      provider = env.ai.anthropicKey ? createAnthropicProvider() : fallbackToMock('anthropic');
+      envProvider = env.ai.anthropicKey ? createAnthropicProvider() : fallbackToMock('anthropic');
       break;
     case 'openai':
-      provider = env.ai.openaiKey ? createOpenAiProvider() : fallbackToMock('openai');
+      envProvider = env.ai.openaiKey ? createOpenAiProvider() : fallbackToMock('openai');
       break;
     default:
-      provider = createMockProvider();
+      envProvider = createMockProvider();
   }
-  console.log(`✓ AI provider: ${provider.name}`);
-  return provider;
+  console.log(`✓ Default AI provider: ${envProvider.name}`);
+  return envProvider;
 }
 
 function fallbackToMock(intended: string): AiProvider {
@@ -28,9 +30,22 @@ function fallbackToMock(intended: string): AiProvider {
   return createMockProvider();
 }
 
-export async function runAi(req: AiRequest): Promise<AiResponse> {
-  const { raw } = await getProvider().complete(req);
+/** Build a provider from a user's per-request config (their key + chosen model). */
+function makeProvider(config: ProviderConfig): AiProvider {
+  switch (config.provider) {
+    case 'anthropic':
+      return createAnthropicProvider(config.apiKey, config.model);
+    case 'openai':
+      return createOpenAiProvider(config.apiKey, config.model);
+    case 'google':
+      return createGoogleProvider(config.apiKey, config.model);
+  }
+}
+
+export async function runAi(req: AiRequest, config?: ProviderConfig): Promise<AiResponse> {
+  const provider = config ? makeProvider(config) : getEnvProvider();
+  const { raw } = await provider.complete(req);
   return parseAiResponse(raw);
 }
 
-export type { AiRequest, AiResponse } from './types.js';
+export type { AiRequest, AiResponse, ProviderConfig } from './types.js';

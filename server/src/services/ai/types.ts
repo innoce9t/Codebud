@@ -33,3 +33,12 @@ export interface AiProvider {
   name: string;
   complete(req: AiRequest): Promise<{ raw: string }>;
 }
+
+import type { Provider } from '../../models/ProviderKey.js';
+
+/** Per-request provider override (user-supplied key + chosen model). */
+export interface ProviderConfig {
+  provider: Provider;
+  apiKey: string;
+  model: string;
+}
