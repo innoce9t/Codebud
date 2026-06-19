@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Check, Plus, Trash2 } from 'lucide-react';
-import TopBar from '../components/TopBar';
-import { Button, Field, Modal, Spinner } from '../components/ui';
+import { ArrowLeft, Check, Plus, Trash2 } from 'lucide-react';
+import { Button, Field, Modal, PageHeader, Spinner } from '../components/ui';
 import { projectApi, templateApi } from '../api';
 import { WORKSPACES } from '../workspaceMeta';
 import type { Project, ProjectType, TemplateMeta } from '../types';
@@ -69,26 +68,29 @@ export default function Workspace() {
   }
 
   return (
-    <div className="min-h-screen">
-      <TopBar>
-        <span className="text-slate-300">/</span>
-        <span className="flex items-center gap-1.5 font-medium text-slate-700">
-          <Icon className={`h-4 w-4 ${meta.accent}`} /> {meta.title}
-        </span>
-      </TopBar>
+    <div className="mx-auto max-w-5xl px-8 py-10">
+      <button
+        onClick={() => nav('/new')}
+        className="mb-4 flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+      >
+        <ArrowLeft className="h-4 w-4" /> All workspace types
+      </button>
 
-      <main className="mx-auto max-w-5xl px-6 py-10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">{meta.title}</h1>
-            <p className="mt-1 text-sm text-slate-500">{meta.blurb}</p>
-          </div>
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
+            <Icon className={`h-6 w-6 ${meta.accent}`} /> {meta.title}
+          </span>
+        }
+        subtitle={meta.blurb}
+        action={
           <Button onClick={() => setCreating(true)}>
             <Plus className="h-4 w-4" /> New project
           </Button>
-        </div>
+        }
+      />
 
-        <div className="mt-8">
+      <div>
           {projects === null ? (
             <div className="flex justify-center py-20">
               <Spinner className="h-8 w-8" />
@@ -129,7 +131,6 @@ export default function Workspace() {
             </div>
           )}
         </div>
-      </main>
 
       <Modal open={creating} onClose={() => setCreating(false)} title={`New ${meta.title} project`}>
         <form onSubmit={create} className="space-y-4">

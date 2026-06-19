@@ -23,6 +23,16 @@ http.interceptors.response.use(
   },
 );
 
+export interface HealthInfo {
+  ok: boolean;
+  aiProvider: 'anthropic' | 'openai' | 'mock';
+  time: string;
+}
+
+export const systemApi = {
+  health: () => http.get<HealthInfo>('/health').then((r) => r.data),
+};
+
 export const authApi = {
   signup: (data: { name?: string; email: string; password: string }) =>
     http.post<{ user: User }>('/auth/signup', data).then((r) => r.data.user),

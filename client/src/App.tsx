@@ -1,9 +1,15 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
 import { Spinner } from './components/ui';
+import AppLayout from './components/AppLayout';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
+import NewProject from './pages/NewProject';
 import Workspace from './pages/Workspace';
+import Workspaces from './pages/Workspaces';
+import AiModels from './pages/AiModels';
+import Settings from './pages/Settings';
+import Profile from './pages/Profile';
 import Editor from './pages/Editor';
 import type { ReactNode } from 'react';
 
@@ -11,7 +17,7 @@ function Protected({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading)
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-screen items-center justify-center">
         <Spinner className="h-8 w-8" />
       </div>
     );
@@ -26,22 +32,25 @@ export default function App() {
         path="/login"
         element={loading ? null : user ? <Navigate to="/" replace /> : <AuthPage />}
       />
+
+      {/* App shell with collapsible sidebar */}
       <Route
-        path="/"
         element={
           <Protected>
-            <Dashboard />
+            <AppLayout />
           </Protected>
         }
-      />
-      <Route
-        path="/workspace/:type"
-        element={
-          <Protected>
-            <Workspace />
-          </Protected>
-        }
-      />
+      >
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/new" element={<NewProject />} />
+        <Route path="/workspaces" element={<Workspaces />} />
+        <Route path="/workspace/:type" element={<Workspace />} />
+        <Route path="/ai-models" element={<AiModels />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/profile" element={<Profile />} />
+      </Route>
+
+      {/* Full-screen IDE (its own layout, no app sidebar) */}
       <Route
         path="/project/:id"
         element={
@@ -50,6 +59,7 @@ export default function App() {
           </Protected>
         }
       />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
