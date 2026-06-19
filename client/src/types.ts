@@ -42,3 +42,9 @@ export interface FileVersion {
   savedAt: string;
   content: string;
 }
+
+export interface TemplateMeta {
+  id: string;
+  name: string;
+  description: string;
+}

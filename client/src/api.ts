@@ -1,5 +1,13 @@
 import axios from 'axios';
-import type { Project, ProjectType, FileNode, ChatMessage, User, FileVersion } from './types';
+import type {
+  Project,
+  ProjectType,
+  FileNode,
+  ChatMessage,
+  User,
+  FileVersion,
+  TemplateMeta,
+} from './types';
 
 export const http = axios.create({
   baseURL: '/api',
@@ -24,10 +32,17 @@ export const authApi = {
   me: () => http.get<{ user: User }>('/auth/me').then((r) => r.data.user),
 };
 
+export const templateApi = {
+  list: () =>
+    http
+      .get<{ templates: Record<ProjectType, TemplateMeta[]> }>('/templates')
+      .then((r) => r.data.templates),
+};
+
 export const projectApi = {
   list: (type?: ProjectType) =>
     http.get<{ projects: Project[] }>('/projects', { params: { type } }).then((r) => r.data.projects),
-  create: (data: { name: string; description?: string; type: ProjectType }) =>
+  create: (data: { name: string; description?: string; type: ProjectType; template?: string }) =>
     http.post<{ project: Project }>('/projects', data).then((r) => r.data.project),
   get: (id: string) =>
     http.get<{ project: Project; files: FileNode[] }>(`/projects/${id}`).then((r) => r.data),

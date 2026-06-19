@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, Trash2 } from 'lucide-react';
+import { Check, Plus, Trash2 } from 'lucide-react';
 import TopBar from '../components/TopBar';
 import { Button, Field, Modal, Spinner } from '../components/ui';
-import { projectApi } from '../api';
+import { projectApi, templateApi } from '../api';
 import { WORKSPACES } from '../workspaceMeta';
-import type { Project, ProjectType } from '../types';
+import type { Project, ProjectType, TemplateMeta } from '../types';
 
 export default function Workspace() {
   const { type } = useParams<{ type: ProjectType }>();
@@ -17,6 +17,8 @@ export default function Workspace() {
   const [desc, setDesc] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [templates, setTemplates] = useState<TemplateMeta[]>([]);
+  const [templateId, setTemplateId] = useState<string>('');
 
   async function refresh() {
     if (!type) return;
@@ -25,6 +27,16 @@ export default function Workspace() {
 
   useEffect(() => {
     refresh();
+  }, [type]);
+
+  // Load the template choices for this workspace.
+  useEffect(() => {
+    if (!type) return;
+    templateApi.list().then((all) => {
+      const list = all[type] ?? [];
+      setTemplates(list);
+      setTemplateId(list[0]?.id ?? '');
+    });
   }, [type]);
 
   if (!meta) return null;
@@ -36,7 +48,12 @@ export default function Workspace() {
     setBusy(true);
     setError('');
     try {
-      const project = await projectApi.create({ name, description: desc, type });
+      const project = await projectApi.create({
+        name,
+        description: desc,
+        type,
+        template: templateId || undefined,
+      });
       nav(`/project/${project._id}`);
     } catch (err) {
       setError((err as Error).message);
@@ -118,6 +135,42 @@ export default function Workspace() {
         <form onSubmit={create} className="space-y-4">
           <Field label="Project name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="My awesome app" autoFocus />
           <Field label="Description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="What is this for?" />
+
+          {templates.length > 0 && (
+            <div>
+              <span className="mb-1 block text-sm font-medium text-slate-600">Template</span>
+              <div className="space-y-2">
+                {templates.map((t) => {
+                  const selected = t.id === templateId;
+                  return (
+                    <button
+                      type="button"
+                      key={t.id}
+                      onClick={() => setTemplateId(t.id)}
+                      className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition ${
+                        selected
+                          ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500/30'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <span
+                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                          selected ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300'
+                        }`}
+                      >
+                        {selected && <Check className="h-3.5 w-3.5" />}
+                      </span>
+                      <span>
+                        <span className="block text-sm font-medium text-slate-800">{t.name}</span>
+                        <span className="block text-xs text-slate-500">{t.description}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setCreating(false)}>

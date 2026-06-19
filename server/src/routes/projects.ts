@@ -6,7 +6,7 @@ import { ChatMessage } from '../models/ChatMessage.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../utils/http.js';
 import { loadOwnedProject } from './helpers.js';
-import { starterFiles } from './templates.js';
+import { templateFiles } from './templates.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -15,6 +15,7 @@ const createSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(500).optional(),
   type: z.enum(PROJECT_TYPES),
+  template: z.string().max(40).optional(),
 });
 
 // List the current user's projects (optionally filtered by ?type=).
@@ -32,10 +33,14 @@ router.get(
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const { name, description, type } = createSchema.parse(req.body);
+    const { name, description, type, template } = createSchema.parse(req.body);
     const project = await Project.create({ owner: req.userId, name, description, type });
     await File.insertMany(
-      starterFiles(type).map((f) => ({ project: project._id, path: f.path, content: f.content })),
+      templateFiles(type, template).map((f) => ({
+        project: project._id,
+        path: f.path,
+        content: f.content,
+      })),
     );
     res.status(201).json({ project });
   }),
