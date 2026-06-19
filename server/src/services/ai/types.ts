@@ -1,0 +1,35 @@
+export interface AiFile {
+  path: string;
+  content: string;
+}
+
+export interface AiChatTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface AiRequest {
+  projectType: 'javascript' | 'python' | 'website';
+  projectName: string;
+  files: AiFile[];
+  history: AiChatTurn[];
+  message: string;
+}
+
+export interface AiResponse {
+  /** Natural-language reply shown in the chat (edit blocks stripped out). */
+  reply: string;
+  /** Structured file edits the assistant requested. */
+  edits: FileEdit[];
+}
+
+export interface FileEdit {
+  path: string;
+  action: 'create' | 'update' | 'delete';
+  content?: string;
+}
+
+export interface AiProvider {
+  name: string;
+  complete(req: AiRequest): Promise<{ raw: string }>;
+}

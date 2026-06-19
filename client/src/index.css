@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #0b1020;
+  color: #e2e8f0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Thin scrollbars to match the IDE feel. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Markdown styling inside the chat panel. */
+.prose-chat pre {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  font-size: 12.5px;
+}
+.prose-chat code {
+  font-family: ui-monospace, monospace;
+  font-size: 12.5px;
+}
+.prose-chat :not(pre) > code {
+  background: #1e293b;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.prose-chat p {
+  margin: 0.4rem 0;
+  line-height: 1.5;
+}
+.prose-chat ul {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
+  list-style: disc;
+}
+.prose-chat a {
+  color: #818cf8;
+  text-decoration: underline;
+}
