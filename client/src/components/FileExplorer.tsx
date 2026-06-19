@@ -1,4 +1,12 @@
 import { useState } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { buildTree, iconFor, type TreeNode } from '../fileTree';
 import type { FileNode } from '../types';
 
@@ -25,29 +33,29 @@ export default function FileExplorer({ files, activeId, onSelect, onCreate, onDe
   }
 
   return (
-    <div className="flex h-full flex-col bg-slate-950/40">
-      <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Explorer</span>
+    <div className="flex h-full flex-col bg-slate-50">
+      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Explorer</span>
         <button
           onClick={() => setAdding(true)}
-          className="rounded px-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+          className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
           title="New file"
         >
-          ＋
+          <Plus className="h-4 w-4" />
         </button>
       </div>
 
       {adding && (
-        <form onSubmit={submitNew} className="border-b border-slate-800 p-2">
+        <form onSubmit={submitNew} className="border-b border-slate-200 p-2">
           <input
             autoFocus
             value={newPath}
             onChange={(e) => setNewPath(e.target.value)}
             onBlur={() => setAdding(false)}
             placeholder="src/new-file.js"
-            className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-white outline-none focus:border-brand-500"
+            className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-brand-500"
           />
-          <p className="mt-1 text-[11px] text-slate-500">Use / for folders. Enter to create.</p>
+          <p className="mt-1 text-[11px] text-slate-400">Use / for folders. Enter to create.</p>
         </form>
       )}
 
@@ -92,10 +100,10 @@ function TreeItem({
         <button
           onClick={() => setOpen((o) => !o)}
           style={pad}
-          className="flex w-full items-center gap-1.5 py-1 text-sm text-slate-300 hover:bg-slate-800/70"
+          className="flex w-full items-center gap-1.5 py-1 text-sm text-slate-600 hover:bg-slate-200/60"
         >
-          <span className="text-xs">{open ? '▾' : '▸'}</span>
-          <span>📁</span>
+          {open ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+          <Folder className="h-4 w-4 shrink-0 text-amber-500" />
           <span className="truncate">{node.name}</span>
         </button>
         {open && node.children.map((c) => (
@@ -107,15 +115,16 @@ function TreeItem({
 
   const file = node.file!;
   const active = file._id === activeId;
+  const Icon = iconFor(node);
   return (
     <div
       style={pad}
       className={`group flex items-center gap-1.5 py-1 pr-2 text-sm ${
-        active ? 'bg-brand-600/20 text-white' : 'text-slate-300 hover:bg-slate-800/70'
+        active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-200/60'
       }`}
     >
       <button onClick={() => onSelect(file)} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
-        <span>{iconFor(node)}</span>
+        <Icon className="h-4 w-4 shrink-0 text-slate-400" />
         <span className="truncate">{node.name}</span>
       </button>
       <button
@@ -123,17 +132,17 @@ function TreeItem({
           const next = prompt('Rename / move file to:', file.path);
           if (next && next !== file.path) onRename(file, next);
         }}
-        className="text-slate-600 opacity-0 hover:text-white group-hover:opacity-100"
+        className="text-slate-300 opacity-0 hover:text-slate-700 group-hover:opacity-100"
         title="Rename"
       >
-        ✎
+        <Pencil className="h-3.5 w-3.5" />
       </button>
       <button
         onClick={() => onDelete(file)}
-        className="text-slate-600 opacity-0 hover:text-red-400 group-hover:opacity-100"
+        className="text-slate-300 opacity-0 hover:text-red-500 group-hover:opacity-100"
         title="Delete"
       >
-        ✕
+        <Trash2 className="h-3.5 w-3.5" />
       </button>
     </div>
   );

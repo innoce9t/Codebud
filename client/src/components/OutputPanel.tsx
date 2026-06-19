@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Play, RefreshCw } from 'lucide-react';
 import type { FileNode, ProjectType } from '../types';
 import { buildPreviewDoc } from '../runners/website';
 import { buildJsRunnerDoc } from '../runners/javascript';
@@ -31,16 +32,16 @@ function WebsitePreview({ files }: { files: FileNode[] }) {
   }, [files, auto]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-slate-800 px-3 py-1.5">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Preview</span>
+    <div className="flex h-full flex-col bg-white">
+      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5">
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Live Preview</span>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1 text-xs text-slate-400">
+          <label className="flex items-center gap-1 text-xs text-slate-500">
             <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} />
             Auto
           </label>
           <Button variant="subtle" className="!py-1 !px-2 text-xs" onClick={rebuild}>
-            ↻ Refresh
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
           </Button>
         </div>
       </div>
@@ -96,38 +97,38 @@ function ConsoleRunner({ type, files }: { type: ProjectType; files: FileNode[] }
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-slate-800 px-3 py-1.5">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Console — <span className="text-slate-300">{entry}</span>
+    <div className="flex h-full flex-col bg-white">
+      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5">
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          Console — <span className="text-slate-700">{entry}</span>
         </span>
         <div className="flex items-center gap-2">
           {logs.length > 0 && (
-            <button onClick={() => setLogs([])} className="text-xs text-slate-500 hover:text-white">
+            <button onClick={() => setLogs([])} className="text-xs text-slate-400 hover:text-slate-700">
               Clear
             </button>
           )}
           <Button onClick={run} disabled={running} className="!py-1 !px-3 text-xs">
-            {running ? 'Running…' : '▶ Run'}
+            <Play className="h-3.5 w-3.5" /> {running ? 'Running…' : 'Run'}
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-slate-950 p-3 font-mono text-xs leading-relaxed">
+      <div className="flex-1 overflow-auto bg-slate-50 p-3 font-mono text-xs leading-relaxed">
         {logs.length === 0 ? (
-          <p className="text-slate-600">Press ▶ Run to execute {entry}.</p>
+          <p className="text-slate-400">Press Run to execute {entry}.</p>
         ) : (
           logs.map((l, i) => (
             <pre
               key={i}
               className={`whitespace-pre-wrap ${
                 l.level === 'error'
-                  ? 'text-red-400'
+                  ? 'text-red-600'
                   : l.level === 'warn'
-                    ? 'text-yellow-400'
+                    ? 'text-amber-600'
                     : l.level === 'info'
-                      ? 'text-slate-500'
-                      : 'text-slate-200'
+                      ? 'text-slate-400'
+                      : 'text-slate-800'
               }`}
             >
               {l.text}

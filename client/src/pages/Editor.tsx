@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { History, PanelBottom, PanelBottomClose } from 'lucide-react';
 import TopBar from '../components/TopBar';
 import FileExplorer from '../components/FileExplorer';
 import CodeEditor from '../components/CodeEditor';
@@ -133,24 +134,28 @@ export default function Editor() {
   if (!project) return null;
 
   const meta = WORKSPACES[project.type];
+  const MetaIcon = meta.Icon;
 
   return (
     <div className="flex h-screen flex-col">
       <TopBar>
-        <span className="text-slate-600">/</span>
-        <button onClick={() => nav(`/workspace/${project.type}`)} className="text-slate-400 hover:text-white">
-          {meta.emoji} {meta.title.replace(' Workspace', '')}
+        <span className="text-slate-300">/</span>
+        <button
+          onClick={() => nav(`/workspace/${project.type}`)}
+          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800"
+        >
+          <MetaIcon className={`h-4 w-4 ${meta.accent}`} /> {meta.title.replace(' Workspace', '')}
         </button>
-        <span className="text-slate-600">/</span>
-        <span className="font-medium text-white">{project.name}</span>
-        <span className="ml-3 text-xs text-slate-500">
-          {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? '✓ Saved' : ''}
+        <span className="text-slate-300">/</span>
+        <span className="font-medium text-slate-900">{project.name}</span>
+        <span className="ml-3 text-xs text-slate-400">
+          {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : ''}
         </span>
       </TopBar>
 
       <div className="flex min-h-0 flex-1">
         {/* Explorer */}
-        <aside className="w-56 shrink-0 border-r border-slate-800">
+        <aside className="w-56 shrink-0 border-r border-slate-200">
           <FileExplorer
             files={files}
             activeId={activeId}
@@ -162,16 +167,17 @@ export default function Editor() {
         </aside>
 
         {/* Editor + output */}
-        <main className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-3 py-1.5">
-            <span className="truncate text-sm text-slate-300">{active ? active.path : 'No file selected'}</span>
+        <main className="flex min-w-0 flex-1 flex-col bg-white">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-white px-3 py-1.5">
+            <span className="truncate text-sm text-slate-600">{active ? active.path : 'No file selected'}</span>
             <div className="flex items-center gap-2">
               {active && (
                 <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowHistory(true)}>
-                  🕓 History
+                  <History className="h-3.5 w-3.5" /> History
                 </Button>
               )}
               <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowOutput((s) => !s)}>
+                {showOutput ? <PanelBottomClose className="h-3.5 w-3.5" /> : <PanelBottom className="h-3.5 w-3.5" />}
                 {showOutput ? 'Hide' : 'Show'} {project.type === 'website' ? 'Preview' : 'Console'}
               </Button>
             </div>
@@ -182,14 +188,14 @@ export default function Editor() {
               {active ? (
                 <CodeEditor path={active.path} value={active.content} onChange={handleChange} />
               ) : (
-                <div className="flex h-full items-center justify-center text-slate-600">
+                <div className="flex h-full items-center justify-center text-slate-400">
                   Select or create a file to start editing.
                 </div>
               )}
             </div>
 
             {showOutput && (
-              <div className="h-2/5 min-h-[180px] border-t border-slate-800">
+              <div className="h-2/5 min-h-[180px] border-t border-slate-200">
                 <OutputPanel type={project.type} files={files} />
               </div>
             )}

@@ -11,7 +11,7 @@ export default function CodeEditor({ path, value, onChange }: Props) {
   return (
     <Editor
       height="100%"
-      theme="vs-dark"
+      theme="light"
       path={path}
       language={languageFromPath(path)}
       value={value}

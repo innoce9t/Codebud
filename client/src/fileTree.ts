@@ -1,3 +1,14 @@
+import {
+  Braces,
+  FileCode2,
+  FileJson,
+  FileText,
+  FileTerminal,
+  FileType2,
+  Globe,
+  Palette,
+  type LucideIcon,
+} from 'lucide-react';
 import type { FileNode } from './types';
 
 export interface TreeNode {
@@ -76,19 +87,22 @@ export function languageFromPath(path: string): string {
   }
 }
 
-export function iconFor(node: TreeNode): string {
-  if (node.isFolder) return '📁';
+/** Returns a Lucide icon component for a file node based on its extension. */
+export function iconFor(node: TreeNode): LucideIcon {
   const ext = node.name.split('.').pop()?.toLowerCase();
   return (
     {
-      js: '🟨',
-      mjs: '🟨',
-      ts: '🔷',
-      py: '🐍',
-      html: '🌐',
-      css: '🎨',
-      json: '🧾',
-      md: '📝',
-    }[ext ?? ''] ?? '📄'
+      js: FileCode2,
+      mjs: FileCode2,
+      cjs: FileCode2,
+      jsx: FileCode2,
+      ts: FileType2,
+      tsx: FileType2,
+      py: FileTerminal,
+      html: Globe,
+      css: Palette,
+      json: FileJson,
+      md: FileText,
+    }[ext ?? ''] ?? Braces
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Plus, Trash2 } from 'lucide-react';
 import TopBar from '../components/TopBar';
 import { Button, Field, Modal, Spinner } from '../components/ui';
 import { projectApi } from '../api';
@@ -27,6 +28,7 @@ export default function Workspace() {
   }, [type]);
 
   if (!meta) return null;
+  const Icon = meta.Icon;
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -52,19 +54,21 @@ export default function Workspace() {
   return (
     <div className="min-h-screen">
       <TopBar>
-        <span className="text-slate-600">/</span>
-        <span className="font-medium text-slate-200">
-          {meta.emoji} {meta.title}
+        <span className="text-slate-300">/</span>
+        <span className="flex items-center gap-1.5 font-medium text-slate-700">
+          <Icon className={`h-4 w-4 ${meta.accent}`} /> {meta.title}
         </span>
       </TopBar>
 
       <main className="mx-auto max-w-5xl px-6 py-10">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">{meta.title}</h1>
-            <p className="mt-1 text-sm text-slate-400">{meta.blurb}</p>
+            <h1 className="text-2xl font-bold text-slate-900">{meta.title}</h1>
+            <p className="mt-1 text-sm text-slate-500">{meta.blurb}</p>
           </div>
-          <Button onClick={() => setCreating(true)}>+ New project</Button>
+          <Button onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4" /> New project
+          </Button>
         </div>
 
         <div className="mt-8">
@@ -73,10 +77,10 @@ export default function Workspace() {
               <Spinner className="h-8 w-8" />
             </div>
           ) : projects.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-700 py-16 text-center">
-              <p className="text-slate-400">No projects yet.</p>
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">
+              <p className="text-slate-500">No projects yet.</p>
               <Button className="mt-4" onClick={() => setCreating(true)}>
-                Create your first {meta.title.replace(' Workspace', '')} project
+                <Plus className="h-4 w-4" /> Create your first {meta.title.replace(' Workspace', '')} project
               </Button>
             </div>
           ) : (
@@ -85,22 +89,22 @@ export default function Workspace() {
                 <div
                   key={p._id}
                   onClick={() => nav(`/project/${p._id}`)}
-                  className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-5 transition hover:border-brand-500/60"
+                  className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-300 hover:shadow-md"
                 >
                   <div className="flex items-start justify-between">
-                    <h3 className="font-semibold text-white">{p.name}</h3>
+                    <h3 className="font-semibold text-slate-900">{p.name}</h3>
                     <button
                       onClick={(e) => remove(p._id, e)}
-                      className="text-slate-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"
+                      className="text-slate-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100"
                       title="Delete"
                     >
-                      ✕
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-400">
+                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">
                     {p.description || 'No description'}
                   </p>
-                  <p className="mt-4 text-xs text-slate-500">
+                  <p className="mt-4 text-xs text-slate-400">
                     Updated {new Date(p.updatedAt).toLocaleString()}
                   </p>
                 </div>
@@ -114,7 +118,7 @@ export default function Workspace() {
         <form onSubmit={create} className="space-y-4">
           <Field label="Project name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="My awesome app" autoFocus />
           <Field label="Description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="What is this for?" />
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setCreating(false)}>
               Cancel

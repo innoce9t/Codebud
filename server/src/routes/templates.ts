@@ -45,7 +45,7 @@ export function starterFiles(type: ProjectType): StarterFile[] {
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800">
   <main class="max-w-2xl mx-auto p-10">
-    <h1 class="text-4xl font-bold text-indigo-600">Hello, world 👋</h1>
+    <h1 class="text-4xl font-bold text-indigo-600">Hello, world</h1>
     <p class="mt-3 text-lg">Edit <code class="bg-slate-200 px-1 rounded">index.html</code> and watch the live preview update.</p>
     <button id="btn" class="mt-6 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
       Click me
@@ -62,7 +62,7 @@ export function starterFiles(type: ProjectType): StarterFile[] {
         },
         {
           path: 'script.js',
-          content: `document.getElementById('btn').addEventListener('click', () => {\n  alert('It works! 🎉');\n});\n`,
+          content: `document.getElementById('btn').addEventListener('click', () => {\n  alert('It works!');\n});\n`,
         },
       ];
   }

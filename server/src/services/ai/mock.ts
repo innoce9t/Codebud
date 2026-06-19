@@ -39,7 +39,7 @@ export function createMockProvider(): AiProvider {
         return {
           raw:
             `Here's what I can see in **${req.projectName}**:\n\n${fileList}\n\n` +
-            `> ℹ️ This workspace is running in **mock AI mode** (no API key configured). ` +
+            `> This workspace is running in **mock AI mode** (no API key configured). ` +
             `Set \`AI_PROVIDER=anthropic\` and \`ANTHROPIC_API_KEY\` in \`.env\` for full code-aware answers.\n\n` +
             `Even so, I can create files and apply simple edits. Try: *"create a file called utils.js"* ` +
             `or *"add a header comment to ${req.files[0]?.path ?? 'index.html'}"*.`,

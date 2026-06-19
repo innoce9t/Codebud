@@ -25,10 +25,10 @@ export function parseAiResponse(raw: string): AiResponse {
     if (!path) return ''; // malformed, drop silently
     if (action === 'delete') {
       edits.push({ path, action });
-      return `\n_🗑️ Deleted \`${path}\`_\n`;
+      return `\n_Deleted \`${path}\`_\n`;
     }
     edits.push({ path, action, content: body.replace(/\n$/, '') });
-    return `\n_✏️ ${action === 'create' ? 'Created' : 'Updated'} \`${path}\`_\n`;
+    return `\n_${action === 'create' ? 'Created' : 'Updated'} \`${path}\`_\n`;
   });
 
   reply = reply.trim();

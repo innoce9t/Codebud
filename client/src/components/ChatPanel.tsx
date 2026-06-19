@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { Bot, MessageSquare, Send } from 'lucide-react';
 import { chatApi } from '../api';
 import { Spinner } from './ui';
 import type { ChatMessage } from '../types';
@@ -55,7 +56,7 @@ export default function ChatPanel({ projectId, onFilesChanged }: Props) {
         {
           _id: `err-${Date.now()}`,
           role: 'assistant',
-          content: `⚠️ ${(err as Error).message}`,
+          content: `${(err as Error).message}`,
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -71,11 +72,13 @@ export default function ChatPanel({ projectId, onFilesChanged }: Props) {
   }
 
   return (
-    <div className="flex h-full flex-col border-l border-slate-800 bg-slate-950/40">
-      <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">🤖 AI Assistant</span>
+    <div className="flex h-full flex-col border-l border-slate-200 bg-white">
+      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+        <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <Bot className="h-4 w-4 text-brand-600" /> AI Assistant
+        </span>
         {messages.length > 0 && (
-          <button onClick={clearChat} className="text-xs text-slate-500 hover:text-red-400">
+          <button onClick={clearChat} className="text-xs text-slate-400 hover:text-red-500">
             Clear
           </button>
         )}
@@ -87,23 +90,23 @@ export default function ChatPanel({ projectId, onFilesChanged }: Props) {
             <Spinner />
           </div>
         ) : messages.length === 0 ? (
-          <div className="px-2 pt-6 text-center text-sm text-slate-500">
-            <p className="mb-2 text-2xl">💬</p>
+          <div className="px-2 pt-6 text-center text-sm text-slate-400">
+            <MessageSquare className="mx-auto mb-2 h-7 w-7 text-slate-300" />
             Ask me about your code, request changes, or say{' '}
-            <em className="text-slate-400">"create a file called helpers.js"</em>. I can read and edit
+            <em className="text-slate-500">"create a file called helpers.js"</em>. I can read and edit
             your project files.
           </div>
         ) : (
           messages.map((m) => <Bubble key={m._id} msg={m} />)
         )}
         {sending && (
-          <div className="flex items-center gap-2 text-sm text-slate-500">
+          <div className="flex items-center gap-2 text-sm text-slate-400">
             <Spinner /> Thinking…
           </div>
         )}
       </div>
 
-      <form onSubmit={send} className="border-t border-slate-800 p-2">
+      <form onSubmit={send} className="border-t border-slate-200 p-2">
         <div className="flex items-end gap-2">
           <textarea
             value={input}
@@ -116,14 +119,15 @@ export default function ChatPanel({ projectId, onFilesChanged }: Props) {
             }}
             rows={2}
             placeholder="Ask the AI… (Enter to send)"
-            className="flex-1 resize-none rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-500"
+            className="flex-1 resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
           />
           <button
             type="submit"
             disabled={sending || !input.trim()}
-            className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-50"
+            className="flex items-center justify-center rounded-lg bg-brand-600 p-2.5 text-white hover:bg-brand-700 disabled:opacity-50"
+            title="Send"
           >
-            Send
+            <Send className="h-4 w-4" />
           </button>
         </div>
       </form>
@@ -137,7 +141,7 @@ function Bubble({ msg }: { msg: ChatMessage }) {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[88%] rounded-2xl px-3.5 py-2 text-sm ${
-          isUser ? 'bg-brand-600 text-white' : 'bg-slate-800 text-slate-100'
+          isUser ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-800'
         }`}
       >
         {isUser ? (
@@ -150,7 +154,7 @@ function Bubble({ msg }: { msg: ChatMessage }) {
                 {msg.edits.map((e, i) => (
                   <span
                     key={i}
-                    className="rounded bg-slate-900 px-1.5 py-0.5 text-[11px] text-emerald-400"
+                    className="rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700"
                   >
                     {e.action} {e.path}
                   </span>

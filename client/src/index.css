@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
@@ -14,8 +14,8 @@ body,
 
 body {
   margin: 0;
-  background: #0b1020;
-  color: #e2e8f0;
+  background: #f8fafc;
+  color: #1e293b;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -25,8 +25,11 @@ body {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #cbd5e1;
   border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -34,8 +37,8 @@ body {
 
 /* Markdown styling inside the chat panel. */
 .prose-chat pre {
-  background: #0f172a;
-  border: 1px solid #1e293b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 10px 12px;
   overflow-x: auto;
@@ -46,7 +49,7 @@ body {
   font-size: 12.5px;
 }
 .prose-chat :not(pre) > code {
-  background: #1e293b;
+  background: #e2e8f0;
   padding: 1px 5px;
   border-radius: 4px;
 }
@@ -60,6 +63,6 @@ body {
   list-style: disc;
 }
 .prose-chat a {
-  color: #818cf8;
+  color: #4f46e5;
   text-decoration: underline;
 }
