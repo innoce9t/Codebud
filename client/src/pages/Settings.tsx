@@ -320,7 +320,7 @@ export default function Settings() {
               return (
                 <div
                   key={t.id}
-                  className={`rounded-xl border p-4 ${current ? 'border-brand-400 bg-brand-50/40 ring-1 ring-brand-400/30' : 'border-slate-200'}`}
+                  className={`rounded-xl border p-4 ${current ? 'border-brand-400 bg-brand-500/10 ring-1 ring-brand-400/30' : 'border-slate-200'}`}
                 >
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-slate-900">{t.name}</h3>

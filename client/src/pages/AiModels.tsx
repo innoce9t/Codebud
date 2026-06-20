@@ -161,7 +161,7 @@ export default function AiModels() {
                         key={m.id}
                         className={`flex flex-col rounded-xl border p-5 shadow-sm transition ${
                           active
-                            ? 'border-brand-400 bg-brand-50/40 ring-1 ring-brand-400/30'
+                            ? 'border-brand-400 bg-brand-500/10 ring-1 ring-brand-400/30'
                             : 'border-slate-200 bg-surface'
                         } ${!p.connected ? 'opacity-60' : ''}`}
                       >

@@ -141,7 +141,7 @@ export default function Sidebar({ collapsed, onToggle, locked = false }: Props) 
             title="Profile"
             className={({ isActive }) =>
               `flex min-w-0 flex-1 items-center gap-2 rounded-lg p-1 transition hover:bg-slate-100 ${
-                isActive ? 'bg-brand-50' : ''
+                isActive ? 'bg-brand-500/10' : ''
               } ${collapsed ? 'flex-none justify-center' : ''}`
             }
           >

@@ -32,7 +32,7 @@ export default function Theme() {
                   onClick={() => setMode(m.id)}
                   className={`flex flex-col items-start rounded-xl border p-4 text-left transition ${
                     active
-                      ? 'border-brand-400 bg-brand-50/40 ring-1 ring-brand-400/30'
+                      ? 'border-brand-400 bg-brand-500/10 ring-1 ring-brand-400/30'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
