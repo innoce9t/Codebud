@@ -9,6 +9,7 @@ import type {
   TemplateMeta,
   AiProvider,
   AiCatalog,
+  ProfilePatch,
 } from './types';
 
 export const http = axios.create({
@@ -42,6 +43,9 @@ export const authApi = {
     http.post<{ user: User }>('/auth/login', data).then((r) => r.data.user),
   logout: () => http.post('/auth/logout').then(() => undefined),
   me: () => http.get<{ user: User }>('/auth/me').then((r) => r.data.user),
+  updateMe: (patch: ProfilePatch) =>
+    http.patch<{ user: User }>('/auth/me', patch).then((r) => r.data.user),
+  deleteMe: () => http.delete('/auth/me').then(() => undefined),
 };
 
 export const aiApi = {

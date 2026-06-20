@@ -1,10 +1,32 @@
 export type ProjectType = 'javascript' | 'python' | 'website';
 
+export interface UserPreferences {
+  language: string;
+  timezone: string;
+  editor: { fontSize: number; tabSize: number; wordWrap: boolean; minimap: boolean };
+  notifications: { productUpdates: boolean; projectActivity: boolean };
+}
+
+export type SubscriptionTier = 'free' | 'pro' | 'team';
+
 export interface User {
   _id: string;
   name: string;
   email: string;
   createdAt?: string;
+  subscriptionTier?: SubscriptionTier;
+  preferences?: UserPreferences;
+}
+
+export interface ProfilePatch {
+  name?: string;
+  subscriptionTier?: SubscriptionTier;
+  preferences?: {
+    language?: string;
+    timezone?: string;
+    editor?: Partial<UserPreferences['editor']>;
+    notifications?: Partial<UserPreferences['notifications']>;
+  };
 }
 
 export interface Project {

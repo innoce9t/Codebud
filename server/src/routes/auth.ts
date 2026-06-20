@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { User } from '../models/User.js';
+import { Project } from '../models/Project.js';
+import { File } from '../models/File.js';
+import { ChatMessage } from '../models/ChatMessage.js';
+import { ProviderKey } from '../models/ProviderKey.js';
 import { signToken, COOKIE_NAME } from '../utils/jwt.js';
 import { asyncHandler, unauthorized } from '../utils/http.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -59,6 +63,73 @@ router.get(
     const user = await User.findById(req.userId);
     if (!user) throw unauthorized();
     res.json({ user });
+  }),
+);
+
+const prefsSchema = z.object({
+  name: z.string().min(1).max(80).optional(),
+  subscriptionTier: z.enum(['free', 'pro', 'team']).optional(),
+  preferences: z
+    .object({
+      language: z.string().max(10).optional(),
+      timezone: z.string().max(64).optional(),
+      editor: z
+        .object({
+          fontSize: z.number().int().min(10).max(24).optional(),
+          tabSize: z.number().int().min(2).max(8).optional(),
+          wordWrap: z.boolean().optional(),
+          minimap: z.boolean().optional(),
+        })
+        .optional(),
+      notifications: z
+        .object({
+          productUpdates: z.boolean().optional(),
+          projectActivity: z.boolean().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
+
+// Update profile / preferences (deep-merges nested preference objects).
+router.patch(
+  '/me',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const patch = prefsSchema.parse(req.body);
+    const user = await User.findById(req.userId);
+    if (!user) throw unauthorized();
+
+    if (patch.name !== undefined) user.name = patch.name;
+    if (patch.subscriptionTier !== undefined) user.subscriptionTier = patch.subscriptionTier;
+    if (patch.preferences) {
+      const p = patch.preferences;
+      if (p.language !== undefined) user.preferences.language = p.language;
+      if (p.timezone !== undefined) user.preferences.timezone = p.timezone;
+      if (p.editor) Object.assign(user.preferences.editor, p.editor);
+      if (p.notifications) Object.assign(user.preferences.notifications, p.notifications);
+    }
+    await user.save();
+    res.json({ user });
+  }),
+);
+
+// Delete the account and all of its data.
+router.delete(
+  '/me',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const projects = await Project.find({ owner: req.userId }).select('_id');
+    const projectIds = projects.map((p) => p._id);
+    await Promise.all([
+      File.deleteMany({ project: { $in: projectIds } }),
+      ChatMessage.deleteMany({ project: { $in: projectIds } }),
+      Project.deleteMany({ owner: req.userId }),
+      ProviderKey.deleteMany({ user: req.userId }),
+      User.deleteOne({ _id: req.userId }),
+    ]);
+    res.clearCookie(COOKIE_NAME);
+    res.json({ ok: true });
   }),
 );
 

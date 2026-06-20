@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { authApi } from './api';
-import type { User } from './types';
+import type { ProfilePatch, User } from './types';
 
 interface AuthCtx {
   user: User | null;
@@ -8,6 +8,8 @@ interface AuthCtx {
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (patch: ProfilePatch) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -31,6 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signup: async (name, email, password) => setUser(await authApi.signup({ name, email, password })),
     logout: async () => {
       await authApi.logout();
+      setUser(null);
+    },
+    updateProfile: async (patch) => setUser(await authApi.updateMe(patch)),
+    deleteAccount: async () => {
+      await authApi.deleteMe();
       setUser(null);
     },
   };
