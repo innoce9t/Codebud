@@ -112,7 +112,7 @@ export default function Workspace() {
               <button
                 key={t.id}
                 onClick={() => openCreate(t)}
-                className={`group flex h-full flex-col rounded-xl border border-slate-200 bg-gradient-to-br ${meta.gradient} p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md`}
+                className={`group flex h-full flex-col rounded-xl border border-slate-200 bg-surface bg-gradient-to-br ${meta.gradient} p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md`}
               >
                 <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${meta.iconBg}`}>
                   <Icon className="h-5 w-5" />

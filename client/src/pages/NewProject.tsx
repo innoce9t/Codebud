@@ -16,7 +16,7 @@ export default function NewProject() {
             <button
               key={w.type}
               onClick={() => nav(`/workspace/${w.type}`)}
-              className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br ${w.gradient} p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-md`}
+              className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-surface bg-gradient-to-br ${w.gradient} p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-md`}
             >
               <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${w.iconBg}`}>
                 <Icon className="h-6 w-6" />
