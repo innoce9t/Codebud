@@ -91,6 +91,7 @@ const prefsSchema = z.object({
           tabSize: z.number().int().min(2).max(8).optional(),
           wordWrap: z.boolean().optional(),
           minimap: z.boolean().optional(),
+          aiCompletions: z.boolean().optional(),
         })
         .optional(),
       notifications: z

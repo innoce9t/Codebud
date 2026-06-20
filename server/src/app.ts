@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.js';
 import projectRoutes from './routes/projects.js';
 import fileRoutes from './routes/files.js';
 import chatRoutes from './routes/chat.js';
+import completeRoutes from './routes/complete.js';
 import catalogRoutes from './routes/catalog.js';
 import aiRoutes from './routes/ai.js';
 
@@ -28,6 +29,7 @@ export function createApp() {
   // Nested resources reuse :projectId from the parent path.
   app.use('/api/projects/:projectId/files', fileRoutes);
   app.use('/api/projects/:projectId/chat', chatRoutes);
+  app.use('/api/projects/:projectId/complete', completeRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

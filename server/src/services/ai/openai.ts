@@ -25,5 +25,16 @@ export function createOpenAiProvider(apiKey?: string, model?: string): AiProvide
       });
       return { raw: res.choices[0]?.message?.content ?? '' };
     },
+    async completeText({ system, user, maxTokens }) {
+      const res = await client.chat.completions.create({
+        model: chosenModel,
+        max_tokens: maxTokens,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
+      });
+      return res.choices[0]?.message?.content ?? '';
+    },
   };
 }

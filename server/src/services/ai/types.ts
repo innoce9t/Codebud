@@ -29,9 +29,17 @@ export interface FileEdit {
   content?: string;
 }
 
+export interface CompletionPrompt {
+  system: string;
+  user: string;
+  maxTokens: number;
+}
+
 export interface AiProvider {
   name: string;
   complete(req: AiRequest): Promise<{ raw: string }>;
+  /** Short, raw text completion (used for inline code completion). */
+  completeText(prompt: CompletionPrompt): Promise<string>;
 }
 
 import type { Provider } from '../../models/ProviderKey.js';

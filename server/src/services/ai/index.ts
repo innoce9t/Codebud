@@ -48,4 +48,9 @@ export async function runAi(req: AiRequest, config?: ProviderConfig): Promise<Ai
   return parseAiResponse(raw);
 }
 
+/** Resolve the provider to use for a given config (or the env default). */
+export function resolveProvider(config?: ProviderConfig): AiProvider {
+  return config ? makeProvider(config) : getEnvProvider();
+}
+
 export type { AiRequest, AiResponse, ProviderConfig } from './types.js';

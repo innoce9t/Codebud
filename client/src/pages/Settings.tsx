@@ -125,7 +125,13 @@ export default function Settings() {
   }
 
   const prefs = user?.preferences;
-  const editor = prefs?.editor ?? { fontSize: 13, tabSize: 2, wordWrap: false, minimap: false };
+  const editor = prefs?.editor ?? {
+    fontSize: 13,
+    tabSize: 2,
+    wordWrap: false,
+    minimap: false,
+    aiCompletions: true,
+  };
   const notif = prefs?.notifications ?? { productUpdates: true, projectActivity: true };
   const tier = user?.subscriptionTier ?? 'free';
 
@@ -301,6 +307,12 @@ export default function Settings() {
           </Row>
           <Row label="Minimap">
             <Toggle checked={editor.minimap} onChange={(v) => save({ preferences: { editor: { minimap: v } } })} />
+          </Row>
+          <Row label="AI inline completions" hint="Ghost-text suggestions as you type (uses your active model)">
+            <Toggle
+              checked={editor.aiCompletions}
+              onChange={(v) => save({ preferences: { editor: { aiCompletions: v } } })}
+            />
           </Row>
         </Card>
 

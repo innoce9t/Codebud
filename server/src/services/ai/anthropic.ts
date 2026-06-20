@@ -27,5 +27,17 @@ export function createAnthropicProvider(apiKey?: string, model?: string): AiProv
         .join('\n');
       return { raw };
     },
+    async completeText({ system, user, maxTokens }) {
+      const res = await client.messages.create({
+        model: chosenModel,
+        max_tokens: maxTokens,
+        system,
+        messages: [{ role: 'user', content: user }],
+      });
+      return res.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('');
+    },
   };
 }

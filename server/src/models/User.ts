@@ -5,7 +5,7 @@ export interface IUserPreferences {
   language: string;
   timezone: string;
   theme: { mode: 'light' | 'dark' | 'system'; accent: string };
-  editor: { fontSize: number; tabSize: number; wordWrap: boolean; minimap: boolean };
+  editor: { fontSize: number; tabSize: number; wordWrap: boolean; minimap: boolean; aiCompletions: boolean };
   notifications: { productUpdates: boolean; projectActivity: boolean };
 }
 
@@ -35,6 +35,7 @@ const editorPrefs = new Schema(
     tabSize: { type: Number, default: 2, min: 2, max: 8 },
     wordWrap: { type: Boolean, default: false },
     minimap: { type: Boolean, default: false },
+    aiCompletions: { type: Boolean, default: true },
   },
   { _id: false },
 );

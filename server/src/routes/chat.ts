@@ -5,29 +5,11 @@ import { ChatMessage } from '../models/ChatMessage.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../utils/http.js';
 import { loadAccessibleProject } from './helpers.js';
-import { runAi, type ProviderConfig } from '../services/ai/index.js';
+import { runAi } from '../services/ai/index.js';
+import { resolveProviderConfig } from '../services/ai/resolve.js';
 import { applyEdits } from '../services/fileService.js';
 import { emitToProject } from '../realtime/socket.js';
 import type { ProjectType } from '../models/Project.js';
-import { User } from '../models/User.js';
-import { ProviderKey } from '../models/ProviderKey.js';
-import { findModel } from '../services/ai/catalog.js';
-import { decrypt } from '../utils/crypto.js';
-
-/** Resolve the caller's active model into a provider config (key + model), if any. */
-async function resolveProviderConfig(userId: string): Promise<ProviderConfig | undefined> {
-  const user = await User.findById(userId);
-  if (!user?.activeModel) return undefined;
-  const found = findModel(user.activeModel);
-  if (!found) return undefined;
-  const cred = await ProviderKey.findOne({ user: userId, provider: found.provider });
-  if (!cred) return undefined;
-  try {
-    return { provider: found.provider, apiKey: decrypt(cred.apiKeyEnc), model: found.model.id };
-  } catch {
-    return undefined; // key undecryptable (e.g. secret changed) — fall back
-  }
-}
 
 // Mounted at /api/projects/:projectId/chat
 const router = Router({ mergeParams: true });

@@ -114,6 +114,17 @@ export const collaboratorApi = {
       .then((r) => r.data.collaborators),
 };
 
+export const completionApi = {
+  complete: (
+    projectId: string,
+    data: { language?: string; prefix: string; suffix?: string },
+    signal?: AbortSignal,
+  ) =>
+    http
+      .post<{ completion: string }>(`/projects/${projectId}/complete`, data, { signal })
+      .then((r) => r.data.completion),
+};
+
 export const chatApi = {
   history: (projectId: string) =>
     http.get<{ messages: ChatMessage[] }>(`/projects/${projectId}/chat`).then((r) => r.data.messages),

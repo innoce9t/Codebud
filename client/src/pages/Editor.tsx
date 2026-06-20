@@ -339,7 +339,12 @@ export default function Editor() {
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="min-h-0 flex-1">
               {active ? (
-                <CodeEditor path={active.path} value={active.content} onChange={handleChange} />
+                <CodeEditor
+                  projectId={project._id}
+                  path={active.path}
+                  value={active.content}
+                  onChange={handleChange}
+                />
               ) : (
                 <div className="flex h-full items-center justify-center text-slate-400">
                   Select or create a file to start editing.

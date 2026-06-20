@@ -53,6 +53,10 @@ export function createMockProvider(): AiProvider {
           `_(mock AI mode — configure a real provider in \`.env\` for full assistance.)_`,
       };
     },
+    // Inline completion isn't supported in mock mode (route falls back to a heuristic).
+    async completeText() {
+      return '';
+    },
   };
 }
 

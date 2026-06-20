@@ -4,7 +4,13 @@ export interface UserPreferences {
   language: string;
   timezone: string;
   theme: { mode: 'light' | 'dark' | 'system'; accent: string };
-  editor: { fontSize: number; tabSize: number; wordWrap: boolean; minimap: boolean };
+  editor: {
+    fontSize: number;
+    tabSize: number;
+    wordWrap: boolean;
+    minimap: boolean;
+    aiCompletions: boolean;
+  };
   notifications: { productUpdates: boolean; projectActivity: boolean };
 }
 
