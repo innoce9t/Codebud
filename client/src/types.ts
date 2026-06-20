@@ -16,11 +16,13 @@ export interface User {
   createdAt?: string;
   subscriptionTier?: SubscriptionTier;
   preferences?: UserPreferences;
+  billing?: { cardBrand: string; cardLast4: string };
 }
 
 export interface ProfilePatch {
   name?: string;
   subscriptionTier?: SubscriptionTier;
+  billing?: { cardBrand: string; cardLast4: string };
   preferences?: {
     language?: string;
     timezone?: string;

@@ -6,7 +6,7 @@ import { File } from '../models/File.js';
 import { ChatMessage } from '../models/ChatMessage.js';
 import { ProviderKey } from '../models/ProviderKey.js';
 import { signToken, COOKIE_NAME } from '../utils/jwt.js';
-import { asyncHandler, unauthorized } from '../utils/http.js';
+import { asyncHandler, unauthorized, HttpError } from '../utils/http.js';
 import { requireAuth } from '../middleware/auth.js';
 import { env } from '../config/env.js';
 
@@ -69,6 +69,12 @@ router.get(
 const prefsSchema = z.object({
   name: z.string().min(1).max(80).optional(),
   subscriptionTier: z.enum(['free', 'pro', 'team']).optional(),
+  billing: z
+    .object({
+      cardBrand: z.string().max(20),
+      cardLast4: z.string().max(4),
+    })
+    .optional(),
   preferences: z
     .object({
       language: z.string().max(10).optional(),
@@ -102,6 +108,10 @@ router.patch(
 
     if (patch.name !== undefined) user.name = patch.name;
     if (patch.subscriptionTier !== undefined) user.subscriptionTier = patch.subscriptionTier;
+    if (patch.billing) {
+      user.billing.cardBrand = patch.billing.cardBrand;
+      user.billing.cardLast4 = patch.billing.cardLast4;
+    }
     if (patch.preferences) {
       const p = patch.preferences;
       if (p.language !== undefined) user.preferences.language = p.language;
@@ -111,6 +121,59 @@ router.patch(
     }
     await user.save();
     res.json({ user });
+  }),
+);
+
+const passwordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+// Change password (verifies the current one first).
+router.post(
+  '/change-password',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = passwordSchema.parse(req.body);
+    const user = await User.findById(req.userId);
+    if (!user) throw unauthorized();
+    if (!(await user.comparePassword(currentPassword))) {
+      throw new HttpError(400, 'Current password is incorrect');
+    }
+    user.passwordHash = await User.hashPassword(newPassword);
+    await user.save();
+    res.json({ ok: true });
+  }),
+);
+
+// Export all of the user's projects (files + chat) as JSON.
+router.get(
+  '/export',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const projects = await Project.find({ owner: req.userId }).sort({ createdAt: 1 });
+    const data = await Promise.all(
+      projects.map(async (p) => {
+        const [files, chat] = await Promise.all([
+          File.find({ project: p._id }).sort({ path: 1 }),
+          ChatMessage.find({ project: p._id }).sort({ createdAt: 1 }),
+        ]);
+        return {
+          name: p.name,
+          type: p.type,
+          description: p.description,
+          createdAt: p.get('createdAt'),
+          files: files.map((f) => ({ path: f.path, content: f.content })),
+          chat: chat.map((c) => ({ role: c.role, content: c.content, createdAt: c.get('createdAt') })),
+        };
+      }),
+    );
+    res.json({
+      exportedAt: new Date().toISOString(),
+      email: req.userEmail,
+      projectCount: data.length,
+      projects: data,
+    });
   }),
 );
 

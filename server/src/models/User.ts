@@ -15,6 +15,7 @@ export interface IUser {
   activeModel?: string;
   subscriptionTier: 'free' | 'pro' | 'team';
   preferences: IUserPreferences;
+  billing: { cardBrand: string; cardLast4: string };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +64,13 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
     activeModel: { type: String, default: '' },
     subscriptionTier: { type: String, enum: ['free', 'pro', 'team'], default: 'free' },
     preferences: { type: preferencesSchema, default: () => ({}) },
+    billing: {
+      type: new Schema(
+        { cardBrand: { type: String, default: '' }, cardLast4: { type: String, default: '' } },
+        { _id: false },
+      ),
+      default: () => ({}),
+    },
   },
   { timestamps: true },
 );

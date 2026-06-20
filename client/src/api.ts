@@ -46,6 +46,9 @@ export const authApi = {
   updateMe: (patch: ProfilePatch) =>
     http.patch<{ user: User }>('/auth/me', patch).then((r) => r.data.user),
   deleteMe: () => http.delete('/auth/me').then(() => undefined),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    http.post('/auth/change-password', { currentPassword, newPassword }).then(() => undefined),
+  exportData: () => http.get('/auth/export').then((r) => r.data),
 };
 
 export const aiApi = {

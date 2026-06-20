@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bot, Check, Moon, Sun, TriangleAlert } from 'lucide-react';
+import { Bot, Check, CreditCard, Download, Moon, Sun, TriangleAlert } from 'lucide-react';
 import { PageHeader, Button } from '../components/ui';
-import { aiApi } from '../api';
+import { aiApi, authApi } from '../api';
 import { useAuth } from '../auth';
 import type { ProfilePatch, SubscriptionTier } from '../types';
+
+function cardBrand(num: string): string {
+  const n = num.replace(/\s/g, '');
+  if (/^4/.test(n)) return 'Visa';
+  if (/^5[1-5]/.test(n)) return 'Mastercard';
+  if (/^3[47]/.test(n)) return 'Amex';
+  if (/^6/.test(n)) return 'Discover';
+  return 'Card';
+}
 
 const LANGUAGES = [
   ['en', 'English'],
@@ -81,6 +90,18 @@ export default function Settings() {
   const [status, setStatus] = useState('');
   const [activeModelName, setActiveModelName] = useState<string | null>(null);
 
+  // Change password
+  const [curPw, setCurPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwMsg, setPwMsg] = useState('');
+  const [pwBusy, setPwBusy] = useState(false);
+
+  // Dummy billing
+  const [cardNum, setCardNum] = useState('');
+  const [cardExp, setCardExp] = useState('');
+  const [cardCvc, setCardCvc] = useState('');
+
   useEffect(() => setName(user?.name ?? ''), [user?.name]);
   useEffect(() => {
     aiApi
@@ -107,6 +128,55 @@ export default function Settings() {
   const editor = prefs?.editor ?? { fontSize: 13, tabSize: 2, wordWrap: false, minimap: false };
   const notif = prefs?.notifications ?? { productUpdates: true, projectActivity: true };
   const tier = user?.subscriptionTier ?? 'free';
+
+  async function changePassword() {
+    setPwMsg('');
+    if (newPw.length < 6) return setPwMsg('New password must be at least 6 characters.');
+    if (newPw !== confirmPw) return setPwMsg('New passwords do not match.');
+    setPwBusy(true);
+    try {
+      await authApi.changePassword(curPw, newPw);
+      setCurPw('');
+      setNewPw('');
+      setConfirmPw('');
+      setPwMsg('Password updated.');
+    } catch (err) {
+      setPwMsg((err as Error).message);
+    } finally {
+      setPwBusy(false);
+    }
+  }
+
+  async function exportData() {
+    setStatus('Preparing export…');
+    try {
+      const data = await authApi.exportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `codebud-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus('Exported');
+      setTimeout(() => setStatus(''), 1500);
+    } catch (err) {
+      setStatus((err as Error).message);
+    }
+  }
+
+  function saveCard() {
+    const digits = cardNum.replace(/\D/g, '');
+    if (digits.length < 13) return;
+    save({ billing: { cardBrand: cardBrand(cardNum), cardLast4: digits.slice(-4) } });
+    setCardNum('');
+    setCardExp('');
+    setCardCvc('');
+  }
+
+  const billing = user?.billing;
+  const hasCard = !!billing?.cardLast4;
+  const tierPrice = TIERS.find((t) => t.id === tier)?.price ?? '$0';
 
   async function removeAccount() {
     if (!confirm('Delete your account and ALL projects, files and chats? This cannot be undone.')) return;
@@ -140,6 +210,42 @@ export default function Settings() {
           <Row label="Email">
             <span className="text-sm font-medium text-slate-800">{user?.email}</span>
           </Row>
+        </Card>
+
+        <Card title="Security" description="Change your password.">
+          <div className="grid max-w-md gap-3">
+            <input
+              type="password"
+              placeholder="Current password"
+              value={curPw}
+              onChange={(e) => setCurPw(e.target.value)}
+              className={`${selectCls} w-full`}
+            />
+            <input
+              type="password"
+              placeholder="New password"
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+              className={`${selectCls} w-full`}
+            />
+            <input
+              type="password"
+              placeholder="Confirm new password"
+              value={confirmPw}
+              onChange={(e) => setConfirmPw(e.target.value)}
+              className={`${selectCls} w-full`}
+            />
+            {pwMsg && (
+              <p className={`text-sm ${pwMsg === 'Password updated.' ? 'text-emerald-600' : 'text-red-600'}`}>
+                {pwMsg}
+              </p>
+            )}
+            <div>
+              <Button onClick={changePassword} disabled={pwBusy || !curPw || !newPw}>
+                {pwBusy ? 'Updating…' : 'Update password'}
+              </Button>
+            </div>
+          </div>
         </Card>
 
         <Card title="Preferences">
@@ -243,6 +349,86 @@ export default function Settings() {
           </div>
         </Card>
 
+        <Card title="Billing" description="Demo billing — no real charges are made.">
+          <Row label="Current plan">
+            <span className="text-sm font-medium text-slate-800 capitalize">
+              {tier} · {tierPrice}
+            </span>
+          </Row>
+          <Row label="Payment method">
+            {hasCard ? (
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
+                  <CreditCard className="h-4 w-4 text-slate-400" />
+                  {billing!.cardBrand} ···· {billing!.cardLast4}
+                </span>
+                <Button
+                  variant="ghost"
+                  className="!py-1 !px-2 text-xs"
+                  onClick={() => save({ billing: { cardBrand: '', cardLast4: '' } })}
+                >
+                  Remove
+                </Button>
+              </div>
+            ) : (
+              <span className="text-sm text-slate-400">No card on file</span>
+            )}
+          </Row>
+
+          {!hasCard && (
+            <div className="mt-3 grid max-w-md gap-2 sm:grid-cols-2">
+              <input
+                placeholder="Card number"
+                value={cardNum}
+                onChange={(e) => setCardNum(e.target.value)}
+                className={`${selectCls} w-full sm:col-span-2`}
+                inputMode="numeric"
+              />
+              <input placeholder="MM / YY" value={cardExp} onChange={(e) => setCardExp(e.target.value)} className={`${selectCls} w-full`} />
+              <input placeholder="CVC" value={cardCvc} onChange={(e) => setCardCvc(e.target.value)} className={`${selectCls} w-full`} inputMode="numeric" />
+              <div className="sm:col-span-2">
+                <Button onClick={saveCard} disabled={cardNum.replace(/\D/g, '').length < 13}>
+                  Save card
+                </Button>
+                <span className="ml-2 text-xs text-slate-400">Use any number, e.g. 4242 4242 4242 4242</span>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-5">
+            <p className="mb-2 text-sm font-medium text-slate-600">Invoices</p>
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs text-slate-400">
+                <tr>
+                  <th className="py-1 font-medium">Date</th>
+                  <th className="font-medium">Amount</th>
+                  <th className="font-medium">Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {['2026-06-01', '2026-05-01', '2026-04-01'].map((d) => (
+                  <tr key={d}>
+                    <td className="py-2 text-slate-700">{d}</td>
+                    <td className="text-slate-700">{tierPrice}</td>
+                    <td>
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Paid</span>
+                    </td>
+                    <td className="text-right">
+                      <button
+                        onClick={() => alert('Demo invoice — no PDF in this build.')}
+                        className="text-xs text-brand-600 hover:underline"
+                      >
+                        Receipt
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
         <Card title="AI">
           <Row label="Active model">
             <div className="flex items-center gap-3">
@@ -267,6 +453,14 @@ export default function Settings() {
                 <Moon className="h-4 w-4" /> Dark
               </span>
             </div>
+          </Row>
+        </Card>
+
+        <Card title="Data" description="Download a copy of all your projects, files and chat history.">
+          <Row label="Export account data" hint="Generates a JSON file you can download">
+            <Button variant="subtle" onClick={exportData}>
+              <Download className="h-4 w-4" /> Export
+            </Button>
           </Row>
         </Card>
 
