@@ -80,12 +80,27 @@ export default function Sidebar({ collapsed, onToggle, locked = false }: Props) 
       {/* Nav: Dashboard, New Project — divider — Workspaces, AI Models, Settings */}
       <nav className="flex-1 overflow-y-auto px-3 py-3">
         <div className="space-y-1">
-          {TOP_NAV.map(({ to, label, Icon, end }) => (
-            <NavLink key={to} to={to} end={end} title={label} className={navClass(collapsed)}>
-              <Icon className="h-5 w-5 shrink-0" />
-              {!collapsed && <span>{label}</span>}
-            </NavLink>
-          ))}
+          {TOP_NAV.map(({ to, label, Icon, end }) => {
+            const accent = to === '/new';
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                title={label}
+                className={
+                  accent
+                    ? `flex items-center gap-3 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 ${
+                        collapsed ? 'justify-center' : ''
+                      }`
+                    : navClass(collapsed)
+                }
+              >
+                <Icon className="h-5 w-5 shrink-0" />
+                {!collapsed && <span>{label}</span>}
+              </NavLink>
+            );
+          })}
         </div>
 
         <div className="my-3 border-t border-slate-200" />
