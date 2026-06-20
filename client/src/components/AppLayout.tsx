@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Bot } from 'lucide-react';
 import Sidebar from './Sidebar';
 import GlobalChatDrawer from './GlobalChatDrawer';
 import { ChatProvider, useChatContext } from '../context/ChatContext';
 import { useAuth } from '../auth';
+import { eventToCombo, formatCombo, resolveBindings } from '../keybindings';
 
 const STORAGE_KEY = 'cb-sidebar-collapsed';
 
@@ -13,7 +14,7 @@ function Layout() {
   const { pathname } = useLocation();
   const nav = useNavigate();
   const { user } = useAuth();
-  const { chatOpen, openChat, closeChat } = useChatContext();
+  const { chatOpen, drawerWidth, openChat, closeChat } = useChatContext();
 
   const isEditor = pathname.startsWith('/project/');
 
@@ -25,7 +26,7 @@ function Layout() {
     });
   }
 
-  function handleTabClick() {
+  const handleTabClick = useCallback(() => {
     if (chatOpen) {
       closeChat();
       return;
@@ -36,7 +37,22 @@ function Layout() {
       return;
     }
     openChat();
-  }
+  }, [chatOpen, user?.activeModel, openChat, closeChat, nav]);
+
+  // Global keybinding to open/close the AI chat from any page.
+  const tabClickRef = useRef(handleTabClick);
+  tabClickRef.current = handleTabClick;
+  useEffect(() => {
+    const toggleCombo = resolveBindings(user?.preferences?.keybindings).toggleChat;
+    function onKey(e: KeyboardEvent) {
+      if (eventToCombo(e) === toggleCombo) {
+        e.preventDefault();
+        tabClickRef.current();
+      }
+    }
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [user?.preferences?.keybindings]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
@@ -48,11 +64,14 @@ function Layout() {
 
       <GlobalChatDrawer />
 
-      {/* Right-edge pull tab — centered vertically, always visible */}
+      {/* Right-edge pull tab — offset by drawer width when chat is open */}
       <button
         onClick={handleTabClick}
-        title={chatOpen ? 'Close AI chat' : 'Open AI chat'}
-        className={`fixed right-0 top-1/2 z-40 flex -translate-y-1/2 flex-col items-center gap-1.5 rounded-l-xl px-1.5 py-4 shadow-md transition-colors ${
+        title={`${chatOpen ? 'Close' : 'Open'} AI chat (${formatCombo(
+          resolveBindings(user?.preferences?.keybindings).toggleChat,
+        )})`}
+        style={{ right: chatOpen ? drawerWidth : 0 }}
+        className={`fixed top-1/2 z-40 flex -translate-y-1/2 flex-col items-center gap-1.5 rounded-l-xl px-1.5 py-4 shadow-md transition-[right,background-color] duration-150 ${
           chatOpen
             ? 'bg-slate-200 text-slate-600 hover:bg-slate-300'
             : 'bg-brand-600 text-white hover:bg-brand-700'

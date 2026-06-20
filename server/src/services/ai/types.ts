@@ -17,6 +17,8 @@ export interface AiRequest {
   history: AiChatTurn[];
   message: string;
   mode?: ChatMode;
+  /** Override the system prompt entirely (used for general/non-project chat). */
+  systemOverride?: string;
 }
 
 export interface AiResponse {

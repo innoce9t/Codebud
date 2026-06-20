@@ -10,6 +10,7 @@ export interface IUserPreferences {
     run: string;
     save: string;
     toggleOutput: string;
+    toggleChat: string;
     focusChat: string;
     nextFile: string;
     prevFile: string;
@@ -25,6 +26,8 @@ export interface IUser {
   subscriptionTier: 'free' | 'pro' | 'team';
   preferences: IUserPreferences;
   billing: { cardBrand: string; cardLast4: string };
+  resetTokenHash?: string | null;
+  resetTokenExpires?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -53,6 +56,7 @@ const keybindingsPrefs = new Schema(
     run: { type: String, default: 'mod+enter' },
     save: { type: String, default: 'mod+s' },
     toggleOutput: { type: String, default: 'mod+b' },
+    toggleChat: { type: String, default: 'mod+j' },
     focusChat: { type: String, default: 'mod+i' },
     nextFile: { type: String, default: 'alt+arrowdown' },
     prevFile: { type: String, default: 'alt+arrowup' },
@@ -103,6 +107,9 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
       ),
       default: () => ({}),
     },
+    // Password reset: only a hash of the token is stored, with a short expiry.
+    resetTokenHash: { type: String, default: null },
+    resetTokenExpires: { type: Date, default: null },
   },
   { timestamps: true },
 );
@@ -120,6 +127,8 @@ userSchema.set('toJSON', {
   transform(_doc, ret) {
     const r = ret as unknown as Record<string, unknown>;
     delete r.passwordHash;
+    delete r.resetTokenHash;
+    delete r.resetTokenExpires;
     delete r.__v;
     return r;
   },

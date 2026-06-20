@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bot, Check, CreditCard, Download, TriangleAlert } from 'lucide-react';
 import { PageHeader, Button } from '../components/ui';
+import { useConfirm } from '../components/ConfirmProvider';
 import { aiApi, authApi } from '../api';
 import { useAuth } from '../auth';
 import {
@@ -93,6 +94,7 @@ const selectCls =
 
 export default function Settings() {
   const { user, updateProfile, logout, deleteAccount } = useAuth();
+  const confirm = useConfirm();
   const nav = useNavigate();
   const [name, setName] = useState(user?.name ?? '');
   const [status, setStatus] = useState('');
@@ -219,7 +221,13 @@ export default function Settings() {
   }, [recording]);
 
   async function removeAccount() {
-    if (!confirm('Delete your account and ALL projects, files and chats? This cannot be undone.')) return;
+    const ok = await confirm({
+      title: 'Delete account',
+      message: 'Delete your account and ALL projects, files and chats? This cannot be undone.',
+      confirmLabel: 'Delete account',
+      danger: true,
+    });
+    if (!ok) return;
     await deleteAccount();
     nav('/login');
   }

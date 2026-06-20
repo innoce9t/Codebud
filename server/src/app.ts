@@ -10,6 +10,7 @@ import chatRoutes from './routes/chat.js';
 import completeRoutes from './routes/complete.js';
 import catalogRoutes from './routes/catalog.js';
 import aiRoutes from './routes/ai.js';
+import sessionRoutes from './routes/sessions.js';
 
 export function createApp() {
   const app = express();
@@ -30,6 +31,7 @@ export function createApp() {
   app.use('/api/projects/:projectId/files', fileRoutes);
   app.use('/api/projects/:projectId/chat', chatRoutes);
   app.use('/api/projects/:projectId/complete', completeRoutes);
+  app.use('/api/sessions', sessionRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

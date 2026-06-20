@@ -49,6 +49,12 @@ export const authApi = {
   deleteMe: () => http.delete('/auth/me').then(() => undefined),
   changePassword: (currentPassword: string, newPassword: string) =>
     http.post('/auth/change-password', { currentPassword, newPassword }).then(() => undefined),
+  forgotPassword: (email: string) =>
+    http
+      .post<{ ok: boolean; demoToken?: string; expiresInMinutes?: number }>('/auth/forgot-password', { email })
+      .then((r) => r.data),
+  resetPassword: (token: string, password: string) =>
+    http.post<{ user: User }>('/auth/reset-password', { token, password }).then((r) => r.data.user),
   exportData: () => http.get('/auth/export').then((r) => r.data),
 };
 
@@ -75,6 +81,8 @@ export const projectApi = {
     http.post<{ project: Project }>('/projects', data).then((r) => r.data.project),
   get: (id: string) =>
     http.get<{ project: Project; files: FileNode[] }>(`/projects/${id}`).then((r) => r.data),
+  update: (id: string, patch: { name?: string; description?: string }) =>
+    http.patch<{ project: Project }>(`/projects/${id}`, patch).then((r) => r.data.project),
   remove: (id: string) => http.delete(`/projects/${id}`).then(() => undefined),
 };
 
@@ -142,6 +150,52 @@ export const completionApi = {
     http
       .post<{ completion: string }>(`/projects/${projectId}/complete`, data, { signal })
       .then((r) => r.data.completion),
+};
+
+export interface SessionMeta {
+  _id: string;
+  title: string;
+  project?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const sessionApi = {
+  list: (projectId?: string) =>
+    http
+      .get<{ sessions: SessionMeta[] }>('/sessions', { params: projectId ? { projectId } : {} })
+      .then((r) => r.data.sessions),
+  general: () => http.get<{ session: SessionMeta }>('/sessions/general').then((r) => r.data.session),
+  create: (data?: { title?: string; projectId?: string }) =>
+    http.post<{ session: SessionMeta }>('/sessions', data ?? {}).then((r) => r.data.session),
+  rename: (id: string, title: string) =>
+    http.patch<{ session: SessionMeta }>(`/sessions/${id}/title`, { title }).then((r) => r.data.session),
+  remove: (id: string) => http.delete(`/sessions/${id}`).then(() => undefined),
+  clearMessages: (id: string) => http.delete(`/sessions/${id}/messages`).then(() => undefined),
+  messages: (id: string) =>
+    http
+      .get<{ messages: ChatMessage[]; session: SessionMeta }>(`/sessions/${id}/messages`)
+      .then((r) => r.data),
+  send: (
+    sessionId: string,
+    message: string,
+    mode: 'ask' | 'plan' | 'agent' = 'ask',
+    approvalMode: 'auto' | 'review' = 'auto',
+  ) =>
+    http
+      .post<{ userMessage: ChatMessage; assistantMessage: ChatMessage; edits: unknown[]; pendingEdits: unknown[]; session: SessionMeta }>(
+        `/sessions/${sessionId}/messages`,
+        { message, mode, approvalMode },
+      )
+      .then((r) => r.data),
+  applyEdits: (sessionId: string, msgId: string) =>
+    http
+      .post<{ ok: boolean; applied: unknown[]; message: ChatMessage }>(`/sessions/${sessionId}/messages/${msgId}/apply`, {})
+      .then((r) => r.data),
+  rejectEdits: (sessionId: string, msgId: string) =>
+    http
+      .delete<{ ok: boolean; message: ChatMessage }>(`/sessions/${sessionId}/messages/${msgId}/pending`)
+      .then((r) => r.data),
 };
 
 export const chatApi = {

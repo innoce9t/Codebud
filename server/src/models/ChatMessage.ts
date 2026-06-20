@@ -2,10 +2,11 @@ import mongoose, { Schema, type InferSchemaType } from 'mongoose';
 
 const chatMessageSchema = new Schema(
   {
-    project: { type: Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
+    project: { type: Schema.Types.ObjectId, ref: 'Project', default: null, index: true },
+    session: { type: Schema.Types.ObjectId, ref: 'Session', default: null, index: true },
     role: { type: String, enum: ['user', 'assistant', 'system'], required: true },
     content: { type: String, required: true },
-    // Optional record of file edits the assistant performed for this message.
+    // Edits already applied to disk.
     edits: {
       type: [
         new Schema(
@@ -15,6 +16,22 @@ const chatMessageSchema = new Schema(
       ],
       default: [],
     },
+    // Edits proposed but not yet applied (agent review mode).
+    pendingEdits: {
+      type: [
+        new Schema(
+          {
+            path: String,
+            action: { type: String, enum: ['create', 'update', 'delete'] },
+            content: String,
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
+    // Tracks whether pending edits were approved or rejected.
+    editsApproved: { type: Boolean, default: null },
   },
   { timestamps: true },
 );

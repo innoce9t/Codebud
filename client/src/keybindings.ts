@@ -1,4 +1,11 @@
-export type KeyActionId = 'run' | 'save' | 'toggleOutput' | 'focusChat' | 'nextFile' | 'prevFile';
+export type KeyActionId =
+  | 'run'
+  | 'save'
+  | 'toggleOutput'
+  | 'toggleChat'
+  | 'focusChat'
+  | 'nextFile'
+  | 'prevFile';
 
 export interface KeyAction {
   id: KeyActionId;
@@ -9,6 +16,7 @@ export const KEY_ACTIONS: KeyAction[] = [
   { id: 'run', label: 'Run project' },
   { id: 'save', label: 'Save file' },
   { id: 'toggleOutput', label: 'Toggle console / preview' },
+  { id: 'toggleChat', label: 'Open / close AI chat' },
   { id: 'focusChat', label: 'Focus AI chat' },
   { id: 'nextFile', label: 'Next file' },
   { id: 'prevFile', label: 'Previous file' },
@@ -18,6 +26,7 @@ export const DEFAULT_KEYBINDINGS: Record<KeyActionId, string> = {
   run: 'mod+enter',
   save: 'mod+s',
   toggleOutput: 'mod+b',
+  toggleChat: 'mod+j',
   focusChat: 'mod+i',
   nextFile: 'alt+arrowdown',
   prevFile: 'alt+arrowup',

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import crypto from 'node:crypto';
 import { User } from '../models/User.js';
 import { Project } from '../models/Project.js';
 import { File } from '../models/File.js';
@@ -56,6 +57,59 @@ router.post('/logout', (_req, res) => {
   res.json({ ok: true });
 });
 
+const RESET_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
+
+const forgotSchema = z.object({ email: z.string().email() });
+
+// Begin a password reset. Always responds ok so we never reveal which emails
+// exist. With no mail service wired up, the token is returned directly for the
+// demo (in production this would instead be emailed as a reset link).
+router.post(
+  '/forgot-password',
+  asyncHandler(async (req, res) => {
+    const { email } = forgotSchema.parse(req.body);
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.json({ ok: true });
+      return;
+    }
+    const token = crypto.randomBytes(32).toString('hex');
+    user.resetTokenHash = hashToken(token);
+    user.resetTokenExpires = new Date(Date.now() + RESET_TTL_MS);
+    await user.save();
+    // demoToken is a stand-in for the emailed reset link.
+    res.json({ ok: true, demoToken: token, expiresInMinutes: RESET_TTL_MS / 60000 });
+  }),
+);
+
+const resetSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+// Complete a password reset with a valid, unexpired token, then sign the user in.
+router.post(
+  '/reset-password',
+  asyncHandler(async (req, res) => {
+    const { token, password } = resetSchema.parse(req.body);
+    const user = await User.findOne({
+      resetTokenHash: hashToken(token),
+      resetTokenExpires: { $gt: new Date() },
+    });
+    if (!user) throw new HttpError(400, 'This reset link is invalid or has expired.');
+
+    user.passwordHash = await User.hashPassword(password);
+    user.resetTokenHash = null;
+    user.resetTokenExpires = null;
+    await user.save();
+
+    const jwt = signToken({ sub: user.id, email: user.email });
+    res.cookie(COOKIE_NAME, jwt, cookieOpts);
+    res.json({ user, token: jwt });
+  }),
+);
+
 router.get(
   '/me',
   requireAuth,
@@ -99,6 +153,7 @@ const prefsSchema = z.object({
           run: z.string().max(40).optional(),
           save: z.string().max(40).optional(),
           toggleOutput: z.string().max(40).optional(),
+          toggleChat: z.string().max(40).optional(),
           focusChat: z.string().max(40).optional(),
           nextFile: z.string().max(40).optional(),
           prevFile: z.string().max(40).optional(),

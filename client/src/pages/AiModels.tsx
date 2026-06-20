@@ -11,6 +11,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { PageHeader, Button, Spinner } from '../components/ui';
+import { useConfirm } from '../components/ConfirmProvider';
 import { aiApi } from '../api';
 import type { AiCatalog, AiProvider, CatalogProvider } from '../types';
 
@@ -26,6 +27,7 @@ const PROVIDER_STYLE: Record<AiProvider, string> = {
 };
 
 export default function AiModels() {
+  const confirm = useConfirm();
   const [catalog, setCatalog] = useState<AiCatalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string>(''); // provider/model id currently mutating
@@ -58,7 +60,13 @@ export default function AiModels() {
   }
 
   async function disconnect(p: CatalogProvider) {
-    if (!confirm(`Disconnect ${p.name}? Models will become unavailable.`)) return;
+    const ok = await confirm({
+      title: `Disconnect ${p.name}`,
+      message: `Disconnect ${p.name}? Its models will become unavailable until you reconnect.`,
+      confirmLabel: 'Disconnect',
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(p.id);
     try {
       await aiApi.disconnect(p.id);

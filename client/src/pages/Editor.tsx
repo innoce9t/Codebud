@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useResizable } from '../hooks/useResizable';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { History, Keyboard, PanelBottom, PanelBottomClose, Share2 } from 'lucide-react';
 import FileExplorer from '../components/FileExplorer';
@@ -10,6 +11,7 @@ import { Button, Modal, Spinner } from '../components/ui';
 import { useAuth } from '../auth';
 import { useChatContext } from '../context/ChatContext';
 import { collaboratorApi, fileApi, projectApi } from '../api';
+import { useConfirm } from '../components/ConfirmProvider';
 import { getSocket } from '../socket';
 import { WORKSPACES } from '../workspaceMeta';
 import { acceptAttr, isAllowedFile, notAllowedMessage } from '../workspaceRules';
@@ -41,7 +43,8 @@ export default function Editor() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const { user } = useAuth();
-  const { openChat, setChatProject } = useChatContext();
+  const { openChat, setCurrentProject, setOnFilesChanged } = useChatContext();
+  const confirm = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
   const [project, setProject] = useState<Project | null>(null);
   const [files, setFiles] = useState<FileNode[]>([]);
@@ -57,16 +60,31 @@ export default function Editor() {
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const active = files.find((f) => f._id === activeId) ?? null;
 
+  const explorer = useResizable({
+    defaultWidth: 224,
+    min: 160,
+    max: 480,
+    storageKey: 'cb-explorer-width',
+    direction: 'right',
+  });
+
   const reloadFiles = useCallback(async () => {
     if (!id) return;
     const fresh = await fileApi.list(id);
     setFiles(fresh);
   }, [id]);
 
-  // Keep the global chat's onFilesChanged in sync whenever reloadFiles changes.
+  // Keep the global chat's onFilesChanged in sync.
   useEffect(() => {
-    if (project) setChatProject(project._id, reloadFiles);
-  }, [project, reloadFiles, setChatProject]);
+    setOnFilesChanged(reloadFiles);
+    return () => setOnFilesChanged(null);
+  }, [reloadFiles, setOnFilesChanged]);
+
+  // Tell the chat which project we're in (scopes its sessions); clear on leave.
+  useEffect(() => {
+    if (id) setCurrentProject(id);
+    return () => setCurrentProject(null);
+  }, [id, setCurrentProject]);
 
   // Initial load (joining first if arriving via a share link).
   useEffect(() => {
@@ -88,9 +106,8 @@ export default function Editor() {
         setFiles(files);
         const firstFile = files.find((f) => !f.isFolder);
         setActiveId(firstFile?._id ?? null);
-        // Auto-open chat on the editor only when an AI model is connected.
-        if (user?.activeModel) openChat(project._id, reloadFiles);
-        else setChatProject(project._id, reloadFiles);
+        // Auto-open the chat (project-scoped sessions) when an AI model is connected.
+        if (user?.activeModel) openChat();
       } catch {
         nav('/');
       } finally {
@@ -262,7 +279,14 @@ export default function Editor() {
   }
 
   async function deleteFile(file: FileNode) {
-    if (!id || !confirm(`Delete ${file.path}?`)) return;
+    if (!id) return;
+    const ok = await confirm({
+      title: 'Delete file',
+      message: `Delete ${file.path}? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     await fileApi.remove(id, file._id);
     await reloadFiles();
     if (activeId === file._id) setActiveId(null);
@@ -331,16 +355,24 @@ export default function Editor() {
 
       <div className="flex min-h-0 flex-1">
         {/* Explorer */}
-        <aside className="w-56 shrink-0 border-r border-slate-200">
-          <FileExplorer
-            files={files}
-            activeId={activeId}
-            accept={acceptAttr(project.type)}
-            onSelect={(f) => setActiveId(f._id)}
-            onCreate={createFile}
-            onUpload={handleUpload}
-            onDelete={deleteFile}
-            onRename={renameFile}
+        <aside className="relative flex shrink-0 border-r border-slate-200" style={{ width: explorer.width }}>
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <FileExplorer
+              files={files}
+              activeId={activeId}
+              accept={acceptAttr(project.type)}
+              onSelect={(f) => setActiveId(f._id)}
+              onCreate={createFile}
+              onUpload={handleUpload}
+              onDelete={deleteFile}
+              onRename={renameFile}
+            />
+          </div>
+          {/* Drag handle */}
+          <div
+            onMouseDown={explorer.handleMouseDown}
+            className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-brand-400/40 active:bg-brand-500/60 transition-colors"
+            title="Drag to resize"
           />
         </aside>
 

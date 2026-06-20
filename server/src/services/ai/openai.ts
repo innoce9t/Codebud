@@ -11,7 +11,7 @@ export function createOpenAiProvider(apiKey?: string, model?: string): AiProvide
     name: 'openai',
     async complete(req: AiRequest) {
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-        { role: 'system', content: buildSystemPrompt(req, req.mode) },
+        { role: 'system', content: req.systemOverride ?? buildSystemPrompt(req, req.mode) },
         { role: 'user', content: buildContextMessage(req) },
         ...req.history.map(
           (h) => ({ role: h.role, content: h.content }) as OpenAI.Chat.ChatCompletionMessageParam,

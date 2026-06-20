@@ -7,6 +7,7 @@ interface AuthCtx {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (patch: ProfilePatch) => Promise<void>;
   deleteAccount: () => Promise<void>;
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     login: async (email, password) => setUser(await authApi.login({ email, password })),
     signup: async (name, email, password) => setUser(await authApi.signup({ name, email, password })),
+    resetPassword: async (token, password) => setUser(await authApi.resetPassword(token, password)),
     logout: async () => {
       await authApi.logout();
       setUser(null);

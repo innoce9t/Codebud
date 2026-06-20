@@ -15,6 +15,7 @@ export interface UserPreferences {
     run: string;
     save: string;
     toggleOutput: string;
+    toggleChat: string;
     focusChat: string;
     nextFile: string;
     prevFile: string;
@@ -79,6 +80,7 @@ export interface FileNode {
 export interface ChatEdit {
   path: string;
   action: 'create' | 'update' | 'delete';
+  content?: string;
 }
 
 export interface ChatMessage {
@@ -86,6 +88,8 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   edits?: ChatEdit[];
+  pendingEdits?: ChatEdit[];
+  editsApproved?: boolean | null;
   createdAt: string;
 }
 

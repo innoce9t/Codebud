@@ -4,12 +4,14 @@ import { ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { PageHeader, Button, Spinner } from '../components/ui';
 import { WORKSPACE_LIST } from '../workspaceMeta';
 import { projectApi } from '../api';
+import { useConfirm } from '../components/ConfirmProvider';
 import { useAuth } from '../auth';
 import type { Project, ProjectType } from '../types';
 
 export default function Workspaces() {
   const nav = useNavigate();
   const { user } = useAuth();
+  const confirm = useConfirm();
   const [projects, setProjects] = useState<Project[] | null>(null);
 
   async function refresh() {
@@ -21,7 +23,13 @@ export default function Workspaces() {
 
   async function remove(id: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!confirm('Delete this project and all its files?')) return;
+    const ok = await confirm({
+      title: 'Delete project',
+      message: 'Delete this project and all its files? This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     await projectApi.remove(id);
     refresh();
   }
