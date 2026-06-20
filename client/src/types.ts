@@ -11,6 +11,14 @@ export interface UserPreferences {
     minimap: boolean;
     aiCompletions: boolean;
   };
+  keybindings: {
+    run: string;
+    save: string;
+    toggleOutput: string;
+    focusChat: string;
+    nextFile: string;
+    prevFile: string;
+  };
   notifications: { productUpdates: boolean; projectActivity: boolean };
 }
 
@@ -35,6 +43,7 @@ export interface ProfilePatch {
     timezone?: string;
     theme?: Partial<UserPreferences['theme']>;
     editor?: Partial<UserPreferences['editor']>;
+    keybindings?: Partial<UserPreferences['keybindings']>;
     notifications?: Partial<UserPreferences['notifications']>;
   };
 }

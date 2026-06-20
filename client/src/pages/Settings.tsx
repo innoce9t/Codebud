@@ -4,6 +4,14 @@ import { Bot, Check, CreditCard, Download, TriangleAlert } from 'lucide-react';
 import { PageHeader, Button } from '../components/ui';
 import { aiApi, authApi } from '../api';
 import { useAuth } from '../auth';
+import {
+  KEY_ACTIONS,
+  DEFAULT_KEYBINDINGS,
+  eventToCombo,
+  formatCombo,
+  resolveBindings,
+  type KeyActionId,
+} from '../keybindings';
 import type { ProfilePatch, SubscriptionTier } from '../types';
 
 function cardBrand(num: string): string {
@@ -102,6 +110,9 @@ export default function Settings() {
   const [cardExp, setCardExp] = useState('');
   const [cardCvc, setCardCvc] = useState('');
 
+  // Keybinding capture
+  const [recording, setRecording] = useState<KeyActionId | null>(null);
+
   useEffect(() => setName(user?.name ?? ''), [user?.name]);
   useEffect(() => {
     aiApi
@@ -134,6 +145,7 @@ export default function Settings() {
   };
   const notif = prefs?.notifications ?? { productUpdates: true, projectActivity: true };
   const tier = user?.subscriptionTier ?? 'free';
+  const bindings = resolveBindings(prefs?.keybindings);
 
   async function changePassword() {
     setPwMsg('');
@@ -183,6 +195,28 @@ export default function Settings() {
   const billing = user?.billing;
   const hasCard = !!billing?.cardLast4;
   const tierPrice = TIERS.find((t) => t.id === tier)?.price ?? '$0';
+
+  // While recording a shortcut, capture the next key combo.
+  useEffect(() => {
+    if (!recording) return;
+    const action = recording;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setRecording(null);
+        return;
+      }
+      const combo = eventToCombo(e);
+      if (!combo) return; // lone modifier — keep waiting
+      e.preventDefault();
+      e.stopPropagation();
+      save({ preferences: { keybindings: { [action]: combo } } });
+      setRecording(null);
+    }
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording]);
 
   async function removeAccount() {
     if (!confirm('Delete your account and ALL projects, files and chats? This cannot be undone.')) return;
@@ -314,6 +348,33 @@ export default function Settings() {
               onChange={(v) => save({ preferences: { editor: { aiCompletions: v } } })}
             />
           </Row>
+        </Card>
+
+        <Card title="Keyboard shortcuts" description="Click a shortcut, then press the new keys. These apply in the project editor.">
+          {KEY_ACTIONS.map((a) => (
+            <Row key={a.id} label={a.label}>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setRecording(a.id)}
+                  className={`min-w-[120px] rounded-lg border px-2.5 py-1 text-center font-mono text-xs transition ${
+                    recording === a.id
+                      ? 'border-brand-500 text-brand-600 ring-2 ring-brand-500/20'
+                      : 'border-slate-300 text-slate-700 hover:border-slate-400'
+                  }`}
+                >
+                  {recording === a.id ? 'Press keys… (Esc)' : formatCombo(bindings[a.id])}
+                </button>
+                {bindings[a.id] !== DEFAULT_KEYBINDINGS[a.id] && (
+                  <button
+                    onClick={() => save({ preferences: { keybindings: { [a.id]: DEFAULT_KEYBINDINGS[a.id] } } })}
+                    className="text-xs text-slate-400 hover:text-slate-700"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </Row>
+          ))}
         </Card>
 
         <Card title="Notifications">

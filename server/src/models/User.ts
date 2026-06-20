@@ -6,6 +6,14 @@ export interface IUserPreferences {
   timezone: string;
   theme: { mode: 'light' | 'dark' | 'system'; accent: string };
   editor: { fontSize: number; tabSize: number; wordWrap: boolean; minimap: boolean; aiCompletions: boolean };
+  keybindings: {
+    run: string;
+    save: string;
+    toggleOutput: string;
+    focusChat: string;
+    nextFile: string;
+    prevFile: string;
+  };
   notifications: { productUpdates: boolean; projectActivity: boolean };
 }
 
@@ -40,6 +48,18 @@ const editorPrefs = new Schema(
   { _id: false },
 );
 
+const keybindingsPrefs = new Schema(
+  {
+    run: { type: String, default: 'mod+enter' },
+    save: { type: String, default: 'mod+s' },
+    toggleOutput: { type: String, default: 'mod+b' },
+    focusChat: { type: String, default: 'mod+i' },
+    nextFile: { type: String, default: 'alt+arrowdown' },
+    prevFile: { type: String, default: 'alt+arrowup' },
+  },
+  { _id: false },
+);
+
 const notifPrefs = new Schema(
   {
     productUpdates: { type: Boolean, default: true },
@@ -62,6 +82,7 @@ const preferencesSchema = new Schema(
     timezone: { type: String, default: 'UTC' },
     theme: { type: themePrefs, default: () => ({}) },
     editor: { type: editorPrefs, default: () => ({}) },
+    keybindings: { type: keybindingsPrefs, default: () => ({}) },
     notifications: { type: notifPrefs, default: () => ({}) },
   },
   { _id: false },

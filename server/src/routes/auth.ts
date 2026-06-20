@@ -94,6 +94,16 @@ const prefsSchema = z.object({
           aiCompletions: z.boolean().optional(),
         })
         .optional(),
+      keybindings: z
+        .object({
+          run: z.string().max(40).optional(),
+          save: z.string().max(40).optional(),
+          toggleOutput: z.string().max(40).optional(),
+          focusChat: z.string().max(40).optional(),
+          nextFile: z.string().max(40).optional(),
+          prevFile: z.string().max(40).optional(),
+        })
+        .optional(),
       notifications: z
         .object({
           productUpdates: z.boolean().optional(),
@@ -125,6 +135,7 @@ router.patch(
       if (p.timezone !== undefined) user.preferences.timezone = p.timezone;
       if (p.theme) Object.assign(user.preferences.theme, p.theme);
       if (p.editor) Object.assign(user.preferences.editor, p.editor);
+      if (p.keybindings) Object.assign(user.preferences.keybindings, p.keybindings);
       if (p.notifications) Object.assign(user.preferences.notifications, p.notifications);
     }
     await user.save();

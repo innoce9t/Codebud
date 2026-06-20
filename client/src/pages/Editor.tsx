@@ -13,6 +13,12 @@ import { fileApi, projectApi } from '../api';
 import { getSocket } from '../socket';
 import { WORKSPACES } from '../workspaceMeta';
 import { acceptAttr, isAllowedFile, notAllowedMessage } from '../workspaceRules';
+import {
+  KEY_ACTIONS,
+  eventToCombo,
+  formatCombo,
+  resolveBindings,
+} from '../keybindings';
 import type { FileNode, Project } from '../types';
 
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2 MB per file
@@ -156,28 +162,31 @@ export default function Editor() {
 
   // Keyboard shortcuts (capture phase so they win over the Monaco editor).
   useEffect(() => {
+    const bindings = resolveBindings(user?.preferences?.keybindings);
+    const actions: Record<string, () => void> = {
+      run: runProject,
+      save: saveNow,
+      toggleOutput: () => setShowOutput((s) => !s),
+      focusChat: () => document.getElementById('cb-chat-input')?.focus(),
+      nextFile: () => cycleFile(1),
+      prevFile: () => cycleFile(-1),
+    };
     function onKey(e: KeyboardEvent) {
-      const mod = e.ctrlKey || e.metaKey;
       const target = e.target as HTMLElement | null;
       const typing =
         !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
 
-      if (mod && e.key === 'Enter') {
-        e.preventDefault();
-        runProject();
-      } else if (mod && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        saveNow();
-      } else if (mod && e.key.toLowerCase() === 'b') {
-        e.preventDefault();
-        setShowOutput((s) => !s);
-      } else if (mod && e.key.toLowerCase() === 'i') {
-        e.preventDefault();
-        document.getElementById('cb-chat-input')?.focus();
-      } else if (e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-        e.preventDefault();
-        cycleFile(e.key === 'ArrowDown' ? 1 : -1);
-      } else if (e.key === '?' && !typing) {
+      const combo = eventToCombo(e);
+      if (combo) {
+        for (const [actionId, binding] of Object.entries(bindings)) {
+          if (binding === combo && actions[actionId]) {
+            e.preventDefault();
+            actions[actionId]();
+            return;
+          }
+        }
+      }
+      if (e.key === '?' && !typing) {
         e.preventDefault();
         setShowShortcuts((s) => !s);
       }
@@ -185,7 +194,7 @@ export default function Editor() {
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files, activeId, id, active?.content]);
+  }, [files, activeId, id, active?.content, user?.preferences?.keybindings]);
 
   async function createFile(path: string) {
     if (!id || !project) return;
@@ -379,23 +388,20 @@ export default function Editor() {
 
       <Modal open={showShortcuts} onClose={() => setShowShortcuts(false)} title="Keyboard shortcuts">
         <ul className="space-y-2 text-sm">
-          {[
-            ['Run project', 'Ctrl/⌘ + Enter'],
-            ['Save file', 'Ctrl/⌘ + S'],
-            ['Toggle console / preview', 'Ctrl/⌘ + B'],
-            ['Focus AI chat', 'Ctrl/⌘ + I'],
-            ['Next file', 'Alt + ↓'],
-            ['Previous file', 'Alt + ↑'],
-            ['Show this help', '?'],
-          ].map(([label, keys]) => (
-            <li key={label} className="flex items-center justify-between">
-              <span className="text-slate-600">{label}</span>
+          {KEY_ACTIONS.map((a) => (
+            <li key={a.id} className="flex items-center justify-between">
+              <span className="text-slate-600">{a.label}</span>
               <kbd className="rounded border border-slate-300 bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-700">
-                {keys}
+                {formatCombo(resolveBindings(user?.preferences?.keybindings)[a.id])}
               </kbd>
             </li>
           ))}
+          <li className="flex items-center justify-between">
+            <span className="text-slate-600">Show this help</span>
+            <kbd className="rounded border border-slate-300 bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-700">?</kbd>
+          </li>
         </ul>
+        <p className="mt-3 text-xs text-slate-400">Customize these in Settings → Keyboard shortcuts.</p>
       </Modal>
     </div>
   );
