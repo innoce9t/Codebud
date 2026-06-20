@@ -39,7 +39,7 @@ export default function AuthPage() {
 
         <form
           onSubmit={submit}
-          className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          className="space-y-4 rounded-2xl border border-slate-200 bg-surface p-6 shadow-sm"
         >
           <div className="flex rounded-lg bg-slate-100 p-1 text-sm">
             {(['login', 'signup'] as const).map((m) => (
@@ -48,7 +48,7 @@ export default function AuthPage() {
                 type="button"
                 onClick={() => setMode(m)}
                 className={`flex-1 rounded-md py-1.5 font-medium capitalize transition ${
-                  mode === m ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  mode === m ? 'bg-surface text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 {m === 'login' ? 'Log in' : 'Sign up'}

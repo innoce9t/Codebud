@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bot, Check, CreditCard, Download, Moon, Sun, TriangleAlert } from 'lucide-react';
+import { Bot, Check, CreditCard, Download, TriangleAlert } from 'lucide-react';
 import { PageHeader, Button } from '../components/ui';
 import { aiApi, authApi } from '../api';
 import { useAuth } from '../auth';
@@ -48,7 +48,7 @@ const TIERS: { id: SubscriptionTier; name: string; price: string; features: stri
 
 function Card({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-slate-200 bg-surface p-5 shadow-sm">
       <h2 className="font-semibold text-slate-900">{title}</h2>
       {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
       <div className="mt-4">{children}</div>
@@ -75,13 +75,13 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       onClick={() => onChange(!checked)}
       className={`relative h-6 w-11 rounded-full transition ${checked ? 'bg-brand-600' : 'bg-slate-300'}`}
     >
-      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? 'left-[22px]' : 'left-0.5'}`} />
+      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-surface shadow transition-all ${checked ? 'left-[22px]' : 'left-0.5'}`} />
     </button>
   );
 }
 
 const selectCls =
-  'rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-500';
+  'rounded-lg border border-slate-300 bg-surface px-3 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-500';
 
 export default function Settings() {
   const { user, updateProfile, logout, deleteAccount } = useAuth();
@@ -444,15 +444,10 @@ export default function Settings() {
         </Card>
 
         <Card title="Appearance">
-          <Row label="Theme">
-            <div className="flex rounded-lg bg-slate-100 p-1">
-              <span className="flex items-center gap-1.5 rounded-md bg-white px-3 py-1 text-sm font-medium text-brand-700 shadow-sm">
-                <Sun className="h-4 w-4" /> Light
-              </span>
-              <span className="flex cursor-not-allowed items-center gap-1.5 px-3 py-1 text-sm text-slate-400" title="Coming soon">
-                <Moon className="h-4 w-4" /> Dark
-              </span>
-            </div>
+          <Row label="Theme & accent color" hint="Light / dark / system and accent colors">
+            <Button variant="subtle" className="!py-1 !px-2 text-xs" onClick={() => nav('/theme')}>
+              Open Theme
+            </Button>
           </Row>
         </Card>
 

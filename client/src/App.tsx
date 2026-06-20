@@ -8,6 +8,7 @@ import NewProject from './pages/NewProject';
 import Workspace from './pages/Workspace';
 import Workspaces from './pages/Workspaces';
 import AiModels from './pages/AiModels';
+import Theme from './pages/Theme';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Editor from './pages/Editor';
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/workspaces" element={<Workspaces />} />
         <Route path="/workspace/:type" element={<Workspace />} />
         <Route path="/ai-models" element={<AiModels />} />
+        <Route path="/theme" element={<Theme />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/profile" element={<Profile />} />
         {/* IDE lives in the shell too, but the sidebar shows collapsed there */}

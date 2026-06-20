@@ -137,7 +137,7 @@ export default function Editor() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex h-12 items-center gap-2 border-b border-slate-200 bg-white px-4">
+      <header className="flex h-12 items-center gap-2 border-b border-slate-200 bg-surface px-4">
         <button
           onClick={() => nav(`/workspace/${project.type}`)}
           className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800"
@@ -165,8 +165,8 @@ export default function Editor() {
         </aside>
 
         {/* Editor + output */}
-        <main className="flex min-w-0 flex-1 flex-col bg-white">
-          <div className="flex items-center justify-between border-b border-slate-200 bg-white px-3 py-1.5">
+        <main className="flex min-w-0 flex-1 flex-col bg-surface">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-surface px-3 py-1.5">
             <span className="truncate text-sm text-slate-600">{active ? active.path : 'No file selected'}</span>
             <div className="flex items-center gap-2">
               {active && (

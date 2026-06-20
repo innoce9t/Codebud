@@ -42,7 +42,7 @@ export default function Dashboard() {
 
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-surface p-5 shadow-sm">
           <div className="flex items-center gap-2 text-slate-500">
             <FolderGit2 className="h-4 w-4" />
             <span className="text-sm">Total projects</span>
@@ -55,7 +55,7 @@ export default function Dashboard() {
             <button
               key={w.type}
               onClick={() => nav(`/workspace/${w.type}`)}
-              className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-brand-300"
+              className="rounded-2xl border border-slate-200 bg-surface p-5 text-left shadow-sm transition hover:border-brand-300"
             >
               <div className={`flex items-center gap-2 ${w.accent}`}>
                 <Icon className="h-4 w-4" />
@@ -68,7 +68,7 @@ export default function Dashboard() {
       </div>
 
       {/* AI status */}
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-surface p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-brand-600" />
@@ -110,7 +110,7 @@ export default function Dashboard() {
             <Spinner className="h-7 w-7" />
           </div>
         ) : recent.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-14 text-center">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-surface py-14 text-center">
             <p className="text-slate-500">No projects yet.</p>
             <Button className="mt-4" onClick={() => nav('/new')}>
               <Plus className="h-4 w-4" /> Create your first project
@@ -125,7 +125,7 @@ export default function Dashboard() {
                 <button
                   key={p._id}
                   onClick={() => nav(`/project/${p._id}`)}
-                  className="rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-brand-300 hover:shadow-md"
+                  className="rounded-xl border border-slate-200 bg-surface p-5 text-left shadow-sm transition hover:border-brand-300 hover:shadow-md"
                 >
                   <div className="flex items-center gap-2">
                     <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${w.iconBg}`}>

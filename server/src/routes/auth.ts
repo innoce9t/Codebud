@@ -79,6 +79,12 @@ const prefsSchema = z.object({
     .object({
       language: z.string().max(10).optional(),
       timezone: z.string().max(64).optional(),
+      theme: z
+        .object({
+          mode: z.enum(['light', 'dark', 'system']).optional(),
+          accent: z.string().max(20).optional(),
+        })
+        .optional(),
       editor: z
         .object({
           fontSize: z.number().int().min(10).max(24).optional(),
@@ -116,6 +122,7 @@ router.patch(
       const p = patch.preferences;
       if (p.language !== undefined) user.preferences.language = p.language;
       if (p.timezone !== undefined) user.preferences.timezone = p.timezone;
+      if (p.theme) Object.assign(user.preferences.theme, p.theme);
       if (p.editor) Object.assign(user.preferences.editor, p.editor);
       if (p.notifications) Object.assign(user.preferences.notifications, p.notifications);
     }

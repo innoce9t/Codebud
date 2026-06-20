@@ -22,7 +22,7 @@ export default function Profile() {
     <div className="mx-auto max-w-3xl px-8 py-10">
       <PageHeader title="Profile" subtitle="Your account details." />
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-surface p-6 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-100 text-2xl font-bold text-brand-700">
             {initial}

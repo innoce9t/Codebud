@@ -3,6 +3,7 @@ export type ProjectType = 'javascript' | 'python' | 'website';
 export interface UserPreferences {
   language: string;
   timezone: string;
+  theme: { mode: 'light' | 'dark' | 'system'; accent: string };
   editor: { fontSize: number; tabSize: number; wordWrap: boolean; minimap: boolean };
   notifications: { productUpdates: boolean; projectActivity: boolean };
 }
@@ -26,6 +27,7 @@ export interface ProfilePatch {
   preferences?: {
     language?: string;
     timezone?: string;
+    theme?: Partial<UserPreferences['theme']>;
     editor?: Partial<UserPreferences['editor']>;
     notifications?: Partial<UserPreferences['notifications']>;
   };

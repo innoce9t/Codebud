@@ -32,7 +32,7 @@ function WebsitePreview({ files }: { files: FileNode[] }) {
   }, [files, auto]);
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-surface">
       <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5">
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Live Preview</span>
         <div className="flex items-center gap-2">
@@ -97,7 +97,7 @@ function ConsoleRunner({ type, files }: { type: ProjectType; files: FileNode[] }
   }
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-surface">
       <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5">
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
           Console — <span className="text-slate-700">{entry}</span>

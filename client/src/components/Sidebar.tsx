@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   LogOut,
+  Palette,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
@@ -21,6 +22,7 @@ const TOP_NAV = [
 const MAIN_NAV = [
   { to: '/workspaces', label: 'Workspaces', Icon: LayoutGrid, end: false },
   { to: '/ai-models', label: 'AI Models', Icon: Bot, end: false },
+  { to: '/theme', label: 'Theme', Icon: Palette, end: false },
   { to: '/settings', label: 'Settings', Icon: Settings, end: false },
 ];
 
@@ -44,7 +46,7 @@ export default function Sidebar({ collapsed, onToggle, locked = false }: Props) 
 
   return (
     <aside
-      className={`flex h-full shrink-0 flex-col border-r border-slate-200 bg-white transition-all duration-200 ${
+      className={`flex h-full shrink-0 flex-col border-r border-slate-200 bg-surface transition-all duration-200 ${
         collapsed ? 'w-16' : 'w-60'
       }`}
     >

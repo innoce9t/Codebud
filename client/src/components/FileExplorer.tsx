@@ -53,7 +53,7 @@ export default function FileExplorer({ files, activeId, onSelect, onCreate, onDe
             onChange={(e) => setNewPath(e.target.value)}
             onBlur={() => setAdding(false)}
             placeholder="src/new-file.js"
-            className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-brand-500"
+            className="w-full rounded border border-slate-300 bg-surface px-2 py-1 text-sm text-slate-900 outline-none focus:border-brand-500"
           />
           <p className="mt-1 text-[11px] text-slate-400">Use / for folders. Enter to create.</p>
         </form>

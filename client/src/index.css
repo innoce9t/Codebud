@@ -2,8 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Neutral ramp (light) ───────────────────────────────── */
 :root {
   color-scheme: light;
+  --slate-50: 248 250 252;
+  --slate-100: 241 245 249;
+  --slate-200: 226 232 240;
+  --slate-300: 203 213 225;
+  --slate-400: 148 163 184;
+  --slate-500: 100 116 139;
+  --slate-600: 71 85 105;
+  --slate-700: 51 65 85;
+  --slate-800: 30 41 59;
+  --slate-900: 15 23 42;
+  --slate-950: 2 6 23;
+  --surface: 255 255 255;
+
+  /* Accent (indigo) — overridden at runtime by the theme picker. */
+  --brand-50: 238 242 255;
+  --brand-100: 224 231 255;
+  --brand-400: 129 140 248;
+  --brand-500: 99 102 241;
+  --brand-600: 79 70 229;
+  --brand-700: 67 56 202;
+}
+
+/* ── Neutral ramp (dark) — the ramp is inverted so existing slate utilities
+   flip automatically (text-slate-900 becomes light, bg-slate-50 becomes dark). */
+.dark {
+  color-scheme: dark;
+  --slate-50: 2 6 23;
+  --slate-100: 15 23 42;
+  --slate-200: 30 41 59;
+  --slate-300: 51 65 85;
+  --slate-400: 71 85 105;
+  --slate-500: 100 116 139;
+  --slate-600: 148 163 184;
+  --slate-700: 203 213 225;
+  --slate-800: 226 232 240;
+  --slate-900: 241 245 249;
+  --slate-950: 248 250 252;
+  --surface: 15 23 42;
 }
 
 html,
@@ -14,22 +53,22 @@ body,
 
 body {
   margin: 0;
-  background: #f8fafc;
-  color: #1e293b;
+  background: rgb(var(--slate-50));
+  color: rgb(var(--slate-900));
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Thin scrollbars to match the IDE feel. */
+/* Thin scrollbars. */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: rgb(var(--slate-300));
   border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: rgb(var(--slate-400));
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -37,8 +76,8 @@ body {
 
 /* Markdown styling inside the chat panel. */
 .prose-chat pre {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: rgb(var(--slate-100));
+  border: 1px solid rgb(var(--slate-200));
   border-radius: 8px;
   padding: 10px 12px;
   overflow-x: auto;
@@ -49,7 +88,7 @@ body {
   font-size: 12.5px;
 }
 .prose-chat :not(pre) > code {
-  background: #e2e8f0;
+  background: rgb(var(--slate-200));
   padding: 1px 5px;
   border-radius: 4px;
 }
@@ -63,6 +102,6 @@ body {
   list-style: disc;
 }
 .prose-chat a {
-  color: #4f46e5;
+  color: rgb(var(--brand-600));
   text-decoration: underline;
 }

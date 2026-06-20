@@ -29,9 +29,9 @@ export default function VersionHistory({ projectId, file, onClose, onRestored }:
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
-        className="flex h-[80vh] w-full max-w-4xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+        className="flex h-[80vh] w-full max-w-4xl overflow-hidden rounded-xl border border-slate-200 bg-surface shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="w-64 shrink-0 overflow-auto border-r border-slate-200">

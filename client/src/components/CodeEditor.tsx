@@ -1,6 +1,7 @@
 import Editor from '@monaco-editor/react';
 import { languageFromPath } from '../fileTree';
 import { useAuth } from '../auth';
+import { useTheme } from '../theme';
 
 interface Props {
   path: string;
@@ -10,12 +11,13 @@ interface Props {
 
 export default function CodeEditor({ path, value, onChange }: Props) {
   const { user } = useAuth();
+  const { resolvedMode } = useTheme();
   const prefs = user?.preferences?.editor;
 
   return (
     <Editor
       height="100%"
-      theme="light"
+      theme={resolvedMode === 'dark' ? 'vs-dark' : 'light'}
       path={path}
       language={languageFromPath(path)}
       value={value}

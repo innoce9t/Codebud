@@ -69,7 +69,7 @@ export default function Workspaces() {
                 </div>
 
                 {items.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center text-sm text-slate-500">
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-surface px-5 py-8 text-center text-sm text-slate-500">
                     No {w.title.replace(' Workspace', '')} projects yet.{' '}
                     <button onClick={() => nav(`/workspace/${w.type}`)} className="font-medium text-brand-600 hover:underline">
                       Create one
@@ -81,7 +81,7 @@ export default function Workspaces() {
                       <div
                         key={p._id}
                         onClick={() => nav(`/project/${p._id}`)}
-                        className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-300 hover:shadow-md"
+                        className="group cursor-pointer rounded-xl border border-slate-200 bg-surface p-5 shadow-sm transition hover:border-brand-300 hover:shadow-md"
                       >
                         <div className="flex items-start justify-between">
                           <h3 className="truncate font-semibold text-slate-900">{p.name}</h3>

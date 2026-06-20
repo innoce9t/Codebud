@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 export interface IUserPreferences {
   language: string;
   timezone: string;
+  theme: { mode: 'light' | 'dark' | 'system'; accent: string };
   editor: { fontSize: number; tabSize: number; wordWrap: boolean; minimap: boolean };
   notifications: { productUpdates: boolean; projectActivity: boolean };
 }
@@ -46,10 +47,19 @@ const notifPrefs = new Schema(
   { _id: false },
 );
 
+const themePrefs = new Schema(
+  {
+    mode: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
+    accent: { type: String, default: 'indigo' },
+  },
+  { _id: false },
+);
+
 const preferencesSchema = new Schema(
   {
     language: { type: String, default: 'en' },
     timezone: { type: String, default: 'UTC' },
+    theme: { type: themePrefs, default: () => ({}) },
     editor: { type: editorPrefs, default: () => ({}) },
     notifications: { type: notifPrefs, default: () => ({}) },
   },

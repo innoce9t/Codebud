@@ -142,7 +142,7 @@ export default function AiModels() {
                           onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: e.target.value }))}
                           onKeyDown={(e) => e.key === 'Enter' && connect(p)}
                           placeholder={`Paste ${p.name} API key`}
-                          className="w-64 rounded-lg border border-slate-300 bg-white py-2 pl-8 pr-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                          className="w-64 rounded-lg border border-slate-300 bg-surface py-2 pl-8 pr-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
                         />
                       </div>
                       <Button onClick={() => connect(p)} disabled={busy === p.id || !(drafts[p.id] || '').trim()}>
@@ -162,7 +162,7 @@ export default function AiModels() {
                         className={`flex flex-col rounded-xl border p-5 shadow-sm transition ${
                           active
                             ? 'border-brand-400 bg-brand-50/40 ring-1 ring-brand-400/30'
-                            : 'border-slate-200 bg-white'
+                            : 'border-slate-200 bg-surface'
                         } ${!p.connected ? 'opacity-60' : ''}`}
                       >
                         <div className="flex items-start justify-between">

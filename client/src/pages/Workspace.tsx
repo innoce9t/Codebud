@@ -103,7 +103,7 @@ export default function Workspace() {
         {templates.length === 0 ? (
           <div className="grid gap-4 sm:grid-cols-3">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-28 animate-pulse rounded-xl border border-slate-200 bg-white" />
+              <div key={i} className="h-28 animate-pulse rounded-xl border border-slate-200 bg-surface" />
             ))}
           </div>
         ) : (
@@ -136,7 +136,7 @@ export default function Workspace() {
             <Spinner className="h-8 w-8" />
           </div>
         ) : projects.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-14 text-center">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-surface py-14 text-center">
             <p className="text-slate-500">No projects yet — pick a quick-start template above to begin.</p>
           </div>
         ) : (
@@ -145,7 +145,7 @@ export default function Workspace() {
               <div
                 key={p._id}
                 onClick={() => nav(`/project/${p._id}`)}
-                className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-300 hover:shadow-md"
+                className="group cursor-pointer rounded-xl border border-slate-200 bg-surface p-5 shadow-sm transition hover:border-brand-300 hover:shadow-md"
               >
                 <div className="flex items-start justify-between">
                   <h3 className="font-semibold text-slate-900">{p.name}</h3>
