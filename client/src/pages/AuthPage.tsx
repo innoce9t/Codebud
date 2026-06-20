@@ -76,13 +76,13 @@ export default function AuthPage() {
       >
         <source src="/bg-video.mp4" type="video/mp4" />
       </video>
-      <div className="absolute inset-0 bg-white/80" />
+      <div className="absolute inset-0 bg-black/60" />
       <div className="relative w-full max-w-sm z-10">
         <div className="mb-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-600/20">
             <Code2 className="h-7 w-7" />
           </div>
-          <h1 className="mt-3 text-3xl font-bold text-slate-900">{title}</h1>
+          <h1 className="mt-3 text-3xl font-bold text-white">{title}</h1>
           <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
         </div>
 
