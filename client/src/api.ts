@@ -99,11 +99,17 @@ export const fileApi = {
       .then((r) => r.data.file),
 };
 
+export interface ShareState {
+  owner: Collaborator;
+  collaborators: Collaborator[];
+  isOwner: boolean;
+  linkSharing: boolean;
+  shareToken?: string;
+}
+
 export const collaboratorApi = {
   list: (projectId: string) =>
-    http
-      .get<{ owner: Collaborator; collaborators: Collaborator[] }>(`/projects/${projectId}/collaborators`)
-      .then((r) => r.data),
+    http.get<ShareState>(`/projects/${projectId}/collaborators`).then((r) => r.data),
   add: (projectId: string, email: string) =>
     http
       .post<{ collaborators: Collaborator[] }>(`/projects/${projectId}/collaborators`, { email })
@@ -112,6 +118,19 @@ export const collaboratorApi = {
     http
       .delete<{ collaborators: Collaborator[] }>(`/projects/${projectId}/collaborators/${userId}`)
       .then((r) => r.data.collaborators),
+  setLinkSharing: (projectId: string, linkSharing: boolean) =>
+    http
+      .put<{ linkSharing: boolean; shareToken: string; collaborators: Collaborator[] }>(
+        `/projects/${projectId}/share`,
+        { linkSharing },
+      )
+      .then((r) => r.data),
+  regenerate: (projectId: string) =>
+    http
+      .post<{ shareToken: string }>(`/projects/${projectId}/share/regenerate`, {})
+      .then((r) => r.data.shareToken),
+  join: (projectId: string, token: string) =>
+    http.post(`/projects/${projectId}/join`, { token }).then(() => undefined),
 };
 
 export const completionApi = {

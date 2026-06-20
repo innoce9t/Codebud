@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { History, Keyboard, PanelBottom, PanelBottomClose, Share2 } from 'lucide-react';
 import FileExplorer from '../components/FileExplorer';
 import CodeEditor from '../components/CodeEditor';
@@ -9,7 +9,7 @@ import VersionHistory from '../components/VersionHistory';
 import ShareModal from '../components/ShareModal';
 import { Button, Modal, Spinner } from '../components/ui';
 import { useAuth } from '../auth';
-import { fileApi, projectApi } from '../api';
+import { collaboratorApi, fileApi, projectApi } from '../api';
 import { getSocket } from '../socket';
 import { WORKSPACES } from '../workspaceMeta';
 import { acceptAttr, isAllowedFile, notAllowedMessage } from '../workspaceRules';
@@ -41,6 +41,7 @@ export default function Editor() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [project, setProject] = useState<Project | null>(null);
   const [files, setFiles] = useState<FileNode[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -61,20 +62,34 @@ export default function Editor() {
     setFiles(fresh);
   }, [id]);
 
-  // Initial load.
+  // Initial load (joining first if arriving via a share link).
   useEffect(() => {
     if (!id) return;
-    projectApi
-      .get(id)
-      .then(({ project, files }) => {
+    const joinToken = searchParams.get('join');
+    (async () => {
+      if (joinToken) {
+        try {
+          await collaboratorApi.join(id, joinToken);
+        } catch {
+          /* link inactive — the get below will 403 and redirect */
+        }
+        searchParams.delete('join');
+        setSearchParams(searchParams, { replace: true });
+      }
+      try {
+        const { project, files } = await projectApi.get(id);
         setProject(project);
         setFiles(files);
         const firstFile = files.find((f) => !f.isFolder);
         setActiveId(firstFile?._id ?? null);
-      })
-      .catch(() => nav('/'))
-      .finally(() => setLoading(false));
-  }, [id, nav]);
+      } catch {
+        nav('/');
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   // Realtime: join room and react to remote/AI changes.
   useEffect(() => {

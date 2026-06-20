@@ -64,7 +64,7 @@ export function initRealtime(server: HttpServer): IOServer {
       const project = await Project.findById(projectId).catch(() => null);
       if (!project) return;
       const isOwner = String(project.owner) === socket.userId;
-      const isCollaborator = (project.collaborators ?? []).some((c) => String(c) === socket.userId);
+      const isCollaborator = (project.collaborators ?? []).some((c) => String(c.user) === socket.userId);
       if (!isOwner && !isCollaborator) return;
       socket.join(room(projectId));
       socket.projectId = projectId;

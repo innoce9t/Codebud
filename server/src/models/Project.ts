@@ -9,16 +9,32 @@ const projectSchema = new Schema(
     name: { type: String, required: true, trim: true },
     description: { type: String, default: '' },
     type: { type: String, enum: PROJECT_TYPES, required: true },
-    // Users (besides the owner) who can open and edit the project.
-    collaborators: { type: [{ type: Schema.Types.ObjectId, ref: 'User' }], default: [], index: true },
+    // Users (besides the owner) who can open and edit the project, and how they joined.
+    collaborators: {
+      type: [
+        new Schema(
+          {
+            user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+            via: { type: String, enum: ['invite', 'link'], default: 'invite' },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
+    // "Anyone with the link" access (Google-Docs style).
+    linkSharing: { type: Boolean, default: false },
+    shareToken: { type: String, default: '' },
   },
   { timestamps: true },
 );
 
 projectSchema.set('toJSON', {
   transform(_doc, ret) {
-    delete (ret as Record<string, unknown>).__v;
-    return ret;
+    const r = ret as Record<string, unknown>;
+    delete r.__v;
+    delete r.shareToken; // only exposed to the owner via the share endpoint
+    return r;
   },
 });
 

@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import crypto from 'node:crypto';
+import mongoose from 'mongoose';
 import { Project, PROJECT_TYPES } from '../models/Project.js';
 import { File } from '../models/File.js';
 import { ChatMessage } from '../models/ChatMessage.js';
 import { User } from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
-import { asyncHandler, badRequest, notFound } from '../utils/http.js';
+import { asyncHandler, badRequest, notFound, forbidden } from '../utils/http.js';
 import { loadOwnedProject, loadAccessibleProject } from './helpers.js';
 import { templateFiles } from './templates.js';
 
@@ -24,7 +26,7 @@ router.get(
   '/',
   asyncHandler(async (req, res) => {
     const filter: Record<string, unknown> = {
-      $or: [{ owner: req.userId }, { collaborators: req.userId }],
+      $or: [{ owner: req.userId }, { 'collaborators.user': req.userId }],
     };
     if (typeof req.query.type === 'string') filter.type = req.query.type;
     const projects = await Project.find(filter).sort({ updatedAt: -1 });
@@ -60,16 +62,32 @@ router.get(
 );
 
 // ── Sharing / collaborators ───────────────────────────────
-// List collaborators (owner or collaborator can view).
+
+// Build the people list (with how they joined) for a project.
+async function collaboratorList(project: { collaborators: { user: unknown; via: string }[] }) {
+  const ids = project.collaborators.map((c) => c.user);
+  const users = await User.find({ _id: { $in: ids } }).select('name email');
+  const viaById = new Map(project.collaborators.map((c) => [String(c.user), c.via]));
+  return users.map((u) => ({ _id: u.id, name: u.name, email: u.email, via: viaById.get(u.id) ?? 'invite' }));
+}
+
+// Share state (owner or collaborator can view; share token only to owner).
 router.get(
   '/:projectId/collaborators',
   asyncHandler(async (req, res) => {
     const project = await loadAccessibleProject(req);
+    const isOwner = String(project.owner) === req.userId;
     const [owner, collaborators] = await Promise.all([
       User.findById(project.owner).select('name email'),
-      User.find({ _id: { $in: project.collaborators } }).select('name email'),
+      collaboratorList(project),
     ]);
-    res.json({ owner, collaborators });
+    res.json({
+      owner,
+      collaborators,
+      isOwner,
+      linkSharing: project.linkSharing,
+      shareToken: isOwner ? project.shareToken : undefined,
+    });
   }),
 );
 
@@ -84,10 +102,15 @@ router.post(
     const target = await User.findOne({ email: email.toLowerCase() });
     if (!target) throw notFound('No CodeBud user with that email — they need an account first');
     if (String(target._id) === String(project.owner)) throw badRequest('That user is the owner');
-    await Project.updateOne({ _id: project._id }, { $addToSet: { collaborators: target._id } });
-    const ids = (await Project.findById(project._id))?.collaborators ?? [];
-    const collaborators = await User.find({ _id: { $in: ids } }).select('name email');
-    res.status(201).json({ collaborators });
+    const exists = project.collaborators.some((c) => String(c.user) === String(target._id));
+    if (!exists) {
+      await Project.updateOne(
+        { _id: project._id },
+        { $push: { collaborators: { user: target._id, via: 'invite' } } },
+      );
+    }
+    const fresh = await Project.findById(project._id);
+    res.status(201).json({ collaborators: await collaboratorList(fresh!) });
   }),
 );
 
@@ -96,10 +119,77 @@ router.delete(
   '/:projectId/collaborators/:userId',
   asyncHandler(async (req, res) => {
     const project = await loadOwnedProject(req);
-    await Project.updateOne({ _id: project._id }, { $pull: { collaborators: req.params.userId } });
-    const ids = (await Project.findById(project._id))?.collaborators ?? [];
-    const collaborators = await User.find({ _id: { $in: ids } }).select('name email');
-    res.json({ collaborators });
+    await Project.updateOne(
+      { _id: project._id },
+      { $pull: { collaborators: { user: req.params.userId } } },
+    );
+    const fresh = await Project.findById(project._id);
+    res.json({ collaborators: await collaboratorList(fresh!) });
+  }),
+);
+
+const linkSchema = z.object({ linkSharing: z.boolean() });
+
+// Toggle "anyone with the link" access (owner only).
+router.put(
+  '/:projectId/share',
+  asyncHandler(async (req, res) => {
+    const project = await loadOwnedProject(req);
+    const { linkSharing } = linkSchema.parse(req.body);
+    if (linkSharing) {
+      if (!project.shareToken) project.shareToken = crypto.randomBytes(16).toString('hex');
+      project.linkSharing = true;
+      await project.save();
+    } else {
+      // Disabling revokes everyone who joined via the link.
+      await Project.updateOne(
+        { _id: project._id },
+        { $set: { linkSharing: false }, $pull: { collaborators: { via: 'link' } } },
+      );
+    }
+    const fresh = await Project.findById(project._id);
+    res.json({
+      linkSharing: fresh!.linkSharing,
+      shareToken: fresh!.shareToken,
+      collaborators: await collaboratorList(fresh!),
+    });
+  }),
+);
+
+// Regenerate the share link (invalidates old links) — owner only.
+router.post(
+  '/:projectId/share/regenerate',
+  asyncHandler(async (req, res) => {
+    const project = await loadOwnedProject(req);
+    project.shareToken = crypto.randomBytes(16).toString('hex');
+    await project.save();
+    res.json({ shareToken: project.shareToken });
+  }),
+);
+
+// Join a project via a share link token (any authenticated user).
+const joinSchema = z.object({ token: z.string().min(1) });
+router.post(
+  '/:projectId/join',
+  asyncHandler(async (req, res) => {
+    const { token } = joinSchema.parse(req.body);
+    const id = req.params.projectId;
+    if (!mongoose.isValidObjectId(id)) throw badRequest('Invalid project id');
+    const project = await Project.findById(id);
+    if (!project) throw notFound('Project not found');
+
+    const isOwner = String(project.owner) === req.userId;
+    const already = project.collaborators.some((c) => String(c.user) === req.userId);
+    if (!isOwner && !already) {
+      if (!project.linkSharing || project.shareToken !== token) {
+        throw forbidden('This share link is no longer active');
+      }
+      await Project.updateOne(
+        { _id: project._id },
+        { $push: { collaborators: { user: req.userId, via: 'link' } } },
+      );
+    }
+    res.json({ ok: true });
   }),
 );
 

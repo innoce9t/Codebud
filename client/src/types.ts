@@ -63,6 +63,7 @@ export interface Collaborator {
   _id: string;
   name: string;
   email: string;
+  via?: 'invite' | 'link';
 }
 
 export interface FileNode {

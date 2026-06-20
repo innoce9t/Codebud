@@ -21,7 +21,7 @@ export async function loadAccessibleProject(req: Request, idParam = 'projectId')
   if (!project) throw notFound('Project not found');
   const uid = req.userId;
   const isOwner = String(project.owner) === uid;
-  const isCollaborator = (project.collaborators ?? []).some((c) => String(c) === uid);
+  const isCollaborator = (project.collaborators ?? []).some((c) => String(c.user) === uid);
   if (!isOwner && !isCollaborator) throw forbidden('You do not have access to this project');
   return project;
 }
