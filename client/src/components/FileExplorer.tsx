@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -6,6 +6,7 @@ import {
   Pencil,
   Plus,
   Trash2,
+  Upload,
 } from 'lucide-react';
 import { buildTree, iconFor, type TreeNode } from '../fileTree';
 import type { FileNode } from '../types';
@@ -13,16 +14,28 @@ import type { FileNode } from '../types';
 interface Props {
   files: FileNode[];
   activeId: string | null;
+  accept?: string;
   onSelect: (file: FileNode) => void;
   onCreate: (path: string) => void;
+  onUpload: (files: FileList) => void;
   onDelete: (file: FileNode) => void;
   onRename: (file: FileNode, newPath: string) => void;
 }
 
-export default function FileExplorer({ files, activeId, onSelect, onCreate, onDelete, onRename }: Props) {
+export default function FileExplorer({
+  files,
+  activeId,
+  accept,
+  onSelect,
+  onCreate,
+  onUpload,
+  onDelete,
+  onRename,
+}: Props) {
   const tree = buildTree(files);
   const [adding, setAdding] = useState(false);
   const [newPath, setNewPath] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
 
   function submitNew(e: React.FormEvent) {
     e.preventDefault();
@@ -36,13 +49,33 @@ export default function FileExplorer({ files, activeId, onSelect, onCreate, onDe
     <div className="flex h-full flex-col bg-slate-50">
       <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Explorer</span>
-        <button
-          onClick={() => setAdding(true)}
-          className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-          title="New file"
-        >
-          <Plus className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => fileInput.current?.click()}
+            className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+            title="Upload files"
+          >
+            <Upload className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setAdding(true)}
+            className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+            title="New file"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+        <input
+          ref={fileInput}
+          type="file"
+          multiple
+          accept={accept}
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files?.length) onUpload(e.target.files);
+            e.target.value = ''; // allow re-uploading the same file
+          }}
+        />
       </div>
 
       {adding && (

@@ -10,7 +10,10 @@ import { Button, Modal, Spinner } from '../components/ui';
 import { fileApi, projectApi } from '../api';
 import { getSocket } from '../socket';
 import { WORKSPACES } from '../workspaceMeta';
+import { acceptAttr, isAllowedFile, notAllowedMessage } from '../workspaceRules';
 import type { FileNode, Project } from '../types';
+
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2 MB per file
 
 type SaveState = 'idle' | 'saving' | 'saved';
 
@@ -158,7 +161,11 @@ export default function Editor() {
   }, [files, activeId, id, active?.content]);
 
   async function createFile(path: string) {
-    if (!id) return;
+    if (!id || !project) return;
+    if (!isAllowedFile(project.type, path)) {
+      alert(notAllowedMessage(project.type, path));
+      return;
+    }
     try {
       const file = await fileApi.create(id, { path });
       await reloadFiles();
@@ -166,6 +173,32 @@ export default function Editor() {
     } catch (err) {
       alert((err as Error).message);
     }
+  }
+
+  async function handleUpload(fileList: FileList) {
+    if (!id || !project) return;
+    const incoming = Array.from(fileList);
+    const skipped: string[] = [];
+    const usable: File[] = [];
+    for (const f of incoming) {
+      if (!isAllowedFile(project.type, f.name)) skipped.push(`${f.name} (type)`);
+      else if (f.size > MAX_UPLOAD_BYTES) skipped.push(`${f.name} (too large)`);
+      else usable.push(f);
+    }
+
+    let lastId: string | null = null;
+    for (const f of usable) {
+      try {
+        const content = await f.text();
+        const created = await fileApi.create(id, { path: f.name, content });
+        lastId = created._id;
+      } catch (err) {
+        skipped.push(`${f.name} (${(err as Error).message})`);
+      }
+    }
+    await reloadFiles();
+    if (lastId) setActiveId(lastId);
+    if (skipped.length) alert(`Some files were skipped:\n- ${skipped.join('\n- ')}`);
   }
 
   async function deleteFile(file: FileNode) {
@@ -176,7 +209,11 @@ export default function Editor() {
   }
 
   async function renameFile(file: FileNode, newPath: string) {
-    if (!id) return;
+    if (!id || !project) return;
+    if (!file.isFolder && !isAllowedFile(project.type, newPath)) {
+      alert(notAllowedMessage(project.type, newPath));
+      return;
+    }
     try {
       await fileApi.rename(id, file._id, newPath);
       await reloadFiles();
@@ -218,8 +255,10 @@ export default function Editor() {
           <FileExplorer
             files={files}
             activeId={activeId}
+            accept={acceptAttr(project.type)}
             onSelect={(f) => setActiveId(f._id)}
             onCreate={createFile}
+            onUpload={handleUpload}
             onDelete={deleteFile}
             onRename={renameFile}
           />

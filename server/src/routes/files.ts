@@ -6,6 +6,8 @@ import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler, badRequest, conflict, notFound } from '../utils/http.js';
 import { loadOwnedProject, normalizePath } from './helpers.js';
 import { applyEdit } from '../services/fileService.js';
+import { isAllowedFile, notAllowedMessage } from '../services/workspaceRules.js';
+import type { ProjectType } from '../models/Project.js';
 import { emitToProject } from '../realtime/socket.js';
 
 // Mounted at /api/projects/:projectId/files
@@ -34,6 +36,9 @@ router.post(
     const project = await loadOwnedProject(req);
     const { path: rawPath, content, isFolder } = createSchema.parse(req.body);
     const path = normalizePath(rawPath);
+    if (!isFolder && !isAllowedFile(project.type as ProjectType, path)) {
+      throw badRequest(notAllowedMessage(project.type as ProjectType, path));
+    }
     const exists = await File.findOne({ project: project._id, path });
     if (exists) throw conflict('A file with that path already exists');
     const file = await File.create({
@@ -75,6 +80,9 @@ router.patch(
     const file = await File.findOne({ _id: req.params.fileId, project: project._id });
     if (!file) throw notFound('File not found');
     const newPath = normalizePath(renameSchema.parse(req.body).path);
+    if (!file.isFolder && !isAllowedFile(project.type as ProjectType, newPath)) {
+      throw badRequest(notAllowedMessage(project.type as ProjectType, newPath));
+    }
     const clash = await File.findOne({ project: project._id, path: newPath });
     if (clash) throw conflict('A file with that path already exists');
     file.path = newPath;
