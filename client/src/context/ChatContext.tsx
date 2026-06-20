@@ -1,13 +1,17 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 
+export type ChatMode = 'ask' | 'plan' | 'agent';
+
 interface ChatContextValue {
   chatOpen: boolean;
   chatProjectId: string | null;
+  chatMode: ChatMode;
   onFilesChanged: (() => void) | null;
   openChat: (projectId?: string, onFilesChanged?: () => void) => void;
   closeChat: () => void;
   toggleChat: () => void;
   setChatProject: (projectId: string, onFilesChanged?: () => void) => void;
+  setChatMode: (mode: ChatMode) => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -15,6 +19,7 @@ const ChatContext = createContext<ChatContextValue | null>(null);
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatProjectId, setChatProjectId] = useState<string | null>(null);
+  const [chatMode, setChatMode] = useState<ChatMode>('ask');
   const [onFilesChanged, setOnFilesChanged] = useState<(() => void) | null>(null);
 
   const openChat = useCallback((projectId?: string, cb?: () => void) => {
@@ -34,7 +39,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   return (
     <ChatContext.Provider
-      value={{ chatOpen, chatProjectId, onFilesChanged, openChat, closeChat, toggleChat, setChatProject }}
+      value={{
+        chatOpen, chatProjectId, chatMode, onFilesChanged,
+        openChat, closeChat, toggleChat, setChatProject, setChatMode,
+      }}
     >
       {children}
     </ChatContext.Provider>

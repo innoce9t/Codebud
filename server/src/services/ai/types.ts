@@ -8,12 +8,15 @@ export interface AiChatTurn {
   content: string;
 }
 
+export type ChatMode = 'ask' | 'plan' | 'agent';
+
 export interface AiRequest {
   projectType: 'javascript' | 'python' | 'website';
   projectName: string;
   files: AiFile[];
   history: AiChatTurn[];
   message: string;
+  mode?: ChatMode;
 }
 
 export interface AiResponse {

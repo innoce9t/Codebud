@@ -1,18 +1,20 @@
 import { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Bot } from 'lucide-react';
 import Sidebar from './Sidebar';
 import GlobalChatDrawer from './GlobalChatDrawer';
 import { ChatProvider, useChatContext } from '../context/ChatContext';
+import { useAuth } from '../auth';
 
 const STORAGE_KEY = 'cb-sidebar-collapsed';
 
 function Layout() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(STORAGE_KEY) === '1');
   const { pathname } = useLocation();
-  const { chatOpen, toggleChat } = useChatContext();
+  const nav = useNavigate();
+  const { user } = useAuth();
+  const { chatOpen, openChat, closeChat } = useChatContext();
 
-  // Inside the project IDE the sidebar is locked to its collapsed icon rail.
   const isEditor = pathname.startsWith('/project/');
 
   function toggle() {
@@ -21,6 +23,19 @@ function Layout() {
       localStorage.setItem(STORAGE_KEY, next ? '1' : '0');
       return next;
     });
+  }
+
+  function handleTabClick() {
+    if (chatOpen) {
+      closeChat();
+      return;
+    }
+    // Gate: if no AI model is connected, send to AI Models page instead.
+    if (!user?.activeModel) {
+      nav('/ai-models');
+      return;
+    }
+    openChat();
   }
 
   return (
@@ -33,16 +48,21 @@ function Layout() {
 
       <GlobalChatDrawer />
 
-      {/* Floating chat toggle — bottom-right of the viewport */}
-      {!chatOpen && (
-        <button
-          onClick={toggleChat}
-          className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30 transition hover:bg-brand-700 hover:scale-105 active:scale-95"
-          title="Open AI chat"
-        >
-          <Bot className="h-5 w-5" />
-        </button>
-      )}
+      {/* Right-edge pull tab — centered vertically, always visible */}
+      <button
+        onClick={handleTabClick}
+        title={chatOpen ? 'Close AI chat' : 'Open AI chat'}
+        className={`fixed right-0 top-1/2 z-40 flex -translate-y-1/2 flex-col items-center gap-1.5 rounded-l-xl px-1.5 py-4 shadow-md transition-colors ${
+          chatOpen
+            ? 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+            : 'bg-brand-600 text-white hover:bg-brand-700'
+        }`}
+      >
+        <Bot className="h-4 w-4" />
+        <span className="rotate-180 text-[10px] font-semibold uppercase tracking-wider [writing-mode:vertical-rl]">
+          AI Chat
+        </span>
+      </button>
     </div>
   );
 }

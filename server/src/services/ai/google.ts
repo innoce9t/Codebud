@@ -47,7 +47,7 @@ export function createGoogleProvider(apiKey: string, model: string): AiProvider 
         { role: 'user', parts: [{ text: req.message }] },
       ];
 
-      const raw = await geminiGenerate(apiKey, model, buildSystemPrompt(req), contents, 4096);
+      const raw = await geminiGenerate(apiKey, model, buildSystemPrompt(req, req.mode), contents, 4096);
       return { raw };
     },
     async completeText({ system, user, maxTokens }) {

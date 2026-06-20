@@ -147,11 +147,11 @@ export const completionApi = {
 export const chatApi = {
   history: (projectId: string) =>
     http.get<{ messages: ChatMessage[] }>(`/projects/${projectId}/chat`).then((r) => r.data.messages),
-  send: (projectId: string, message: string) =>
+  send: (projectId: string, message: string, mode: 'ask' | 'plan' | 'agent' = 'ask') =>
     http
       .post<{ userMessage: ChatMessage; assistantMessage: ChatMessage; edits: unknown[] }>(
         `/projects/${projectId}/chat`,
-        { message },
+        { message, mode },
       )
       .then((r) => r.data),
   clear: (projectId: string) => http.delete(`/projects/${projectId}/chat`).then(() => undefined),

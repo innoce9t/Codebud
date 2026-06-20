@@ -88,8 +88,9 @@ export default function Editor() {
         setFiles(files);
         const firstFile = files.find((f) => !f.isFolder);
         setActiveId(firstFile?._id ?? null);
-        // Register this project with the global chat (opens drawer automatically on editor pages).
-        openChat(project._id, reloadFiles);
+        // Auto-open chat on the editor only when an AI model is connected.
+        if (user?.activeModel) openChat(project._id, reloadFiles);
+        else setChatProject(project._id, reloadFiles);
       } catch {
         nav('/');
       } finally {

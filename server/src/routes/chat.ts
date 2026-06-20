@@ -25,14 +25,17 @@ router.get(
   }),
 );
 
-const sendSchema = z.object({ message: z.string().min(1).max(8000) });
+const sendSchema = z.object({
+  message: z.string().min(1).max(8000),
+  mode: z.enum(['ask', 'plan', 'agent']).default('ask'),
+});
 
 // Send a message to the AI. Persists both turns, applies any file edits.
 router.post(
   '/',
   asyncHandler(async (req, res) => {
     const project = await loadAccessibleProject(req);
-    const { message } = sendSchema.parse(req.body);
+    const { message, mode } = sendSchema.parse(req.body);
 
     const [files, history] = await Promise.all([
       File.find({ project: project._id, isFolder: { $ne: true } }).sort({ path: 1 }),
@@ -52,6 +55,7 @@ router.post(
           files: files.map((f) => ({ path: f.path, content: f.content ?? '' })),
           history: history.map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content })),
           message,
+          mode,
         },
         config,
       );

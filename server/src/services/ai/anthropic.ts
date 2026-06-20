@@ -18,7 +18,7 @@ export function createAnthropicProvider(apiKey?: string, model?: string): AiProv
       const res = await client.messages.create({
         model: chosenModel,
         max_tokens: 4096,
-        system: buildSystemPrompt(req),
+        system: buildSystemPrompt(req, req.mode),
         messages,
       });
       const raw = res.content

@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useNavigate } from 'react-router-dom';
 import { Bot, MessageSquare, Send } from 'lucide-react';
 import { chatApi } from '../api';
 import { Spinner } from './ui';
+import type { ChatMode } from '../context/ChatContext';
 import type { ChatMessage } from '../types';
 
 interface Props {
   projectId: string;
+  mode?: ChatMode;
   onFilesChanged?: () => void;
   hideHeader?: boolean;
 }
 
-export default function ChatPanel({ projectId, onFilesChanged, hideHeader }: Props) {
+export default function ChatPanel({ projectId, mode = 'ask', onFilesChanged, hideHeader }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -19,6 +22,7 @@ export default function ChatPanel({ projectId, onFilesChanged, hideHeader }: Pro
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setLoaded(false);
     chatApi.history(projectId).then((m) => {
       setMessages(m);
       setLoaded(true);
@@ -35,7 +39,6 @@ export default function ChatPanel({ projectId, onFilesChanged, hideHeader }: Pro
     if (!text || sending) return;
     setInput('');
     setSending(true);
-    // Optimistic user bubble.
     const optimistic: ChatMessage = {
       _id: `tmp-${Date.now()}`,
       role: 'user',
@@ -44,7 +47,7 @@ export default function ChatPanel({ projectId, onFilesChanged, hideHeader }: Pro
     };
     setMessages((m) => [...m, optimistic]);
     try {
-      const res = await chatApi.send(projectId, text);
+      const res = await chatApi.send(projectId, text, mode);
       setMessages((m) => [
         ...m.filter((x) => x._id !== optimistic._id),
         res.userMessage,
@@ -53,7 +56,7 @@ export default function ChatPanel({ projectId, onFilesChanged, hideHeader }: Pro
       if (res.edits.length) onFilesChanged?.();
     } catch (err) {
       setMessages((m) => [
-        ...m,
+        ...m.filter((x) => x._id !== optimistic._id),
         {
           _id: `err-${Date.now()}`,
           role: 'assistant',
@@ -95,16 +98,18 @@ export default function ChatPanel({ projectId, onFilesChanged, hideHeader }: Pro
         ) : messages.length === 0 ? (
           <div className="px-2 pt-6 text-center text-sm text-slate-400">
             <MessageSquare className="mx-auto mb-2 h-7 w-7 text-slate-300" />
-            Ask me about your code, request changes, or say{' '}
-            <em className="text-slate-500">"create a file called helpers.js"</em>. I can read and edit
-            your project files.
+            {mode === 'agent'
+              ? 'Agent mode: I\'ll autonomously complete your request end-to-end.'
+              : mode === 'plan'
+              ? 'Plan mode: I\'ll outline a plan before making any changes.'
+              : 'Ask me about your code, request changes, or navigate the app.'}
           </div>
         ) : (
           messages.map((m) => <Bubble key={m._id} msg={m} />)
         )}
         {sending && (
           <div className="flex items-center gap-2 text-sm text-slate-400">
-            <Spinner /> Thinking…
+            <Spinner /> {mode === 'agent' ? 'Working…' : mode === 'plan' ? 'Planning…' : 'Thinking…'}
           </div>
         )}
       </div>
@@ -122,7 +127,13 @@ export default function ChatPanel({ projectId, onFilesChanged, hideHeader }: Pro
               }
             }}
             rows={2}
-            placeholder="Ask the AI… (Enter to send)"
+            placeholder={
+              mode === 'agent'
+                ? 'Describe what to build…'
+                : mode === 'plan'
+                ? 'Describe what you want planned…'
+                : 'Ask the AI… (Enter to send)'
+            }
             className="flex-1 resize-none rounded-lg border border-slate-300 bg-surface px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
           />
           <button
@@ -140,6 +151,7 @@ export default function ChatPanel({ projectId, onFilesChanged, hideHeader }: Pro
 }
 
 function Bubble({ msg }: { msg: ChatMessage }) {
+  const nav = useNavigate();
   const isUser = msg.role === 'user';
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -152,7 +164,28 @@ function Bubble({ msg }: { msg: ChatMessage }) {
           <p className="whitespace-pre-wrap">{msg.content}</p>
         ) : (
           <div className="prose-chat">
-            <ReactMarkdown>{msg.content}</ReactMarkdown>
+            <ReactMarkdown
+              components={{
+                // Intercept links: internal paths use React Router, external open new tab.
+                a: ({ href, children }) => {
+                  const internal = href?.startsWith('/');
+                  return internal ? (
+                    <button
+                      className="text-brand-600 underline hover:text-brand-700"
+                      onClick={() => nav(href!)}
+                    >
+                      {children}
+                    </button>
+                  ) : (
+                    <a href={href} target="_blank" rel="noopener noreferrer">
+                      {children}
+                    </a>
+                  );
+                },
+              }}
+            >
+              {msg.content}
+            </ReactMarkdown>
             {msg.edits && msg.edits.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {msg.edits.map((e, i) => (

@@ -10,6 +10,7 @@ interface AuthCtx {
   logout: () => Promise<void>;
   updateProfile: (patch: ProfilePatch) => Promise<void>;
   deleteAccount: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
     },
     updateProfile: async (patch) => setUser(await authApi.updateMe(patch)),
+    refreshUser: async () => setUser(await authApi.me()),
     deleteAccount: async () => {
       await authApi.deleteMe();
       setUser(null);

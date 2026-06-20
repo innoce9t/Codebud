@@ -30,6 +30,7 @@ export interface User {
   email: string;
   createdAt?: string;
   subscriptionTier?: SubscriptionTier;
+  activeModel?: string | null;
   preferences?: UserPreferences;
   billing?: { cardBrand: string; cardLast4: string };
 }
