@@ -38,8 +38,16 @@ export interface Project {
   name: string;
   description?: string;
   type: ProjectType;
+  owner: string;
+  collaborators?: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Collaborator {
+  _id: string;
+  name: string;
+  email: string;
 }
 
 export interface FileNode {

@@ -62,7 +62,10 @@ export function initRealtime(server: HttpServer): IOServer {
     // Join a project room (after verifying ownership).
     socket.on('project:join', async (projectId: string) => {
       const project = await Project.findById(projectId).catch(() => null);
-      if (!project || String(project.owner) !== socket.userId) return;
+      if (!project) return;
+      const isOwner = String(project.owner) === socket.userId;
+      const isCollaborator = (project.collaborators ?? []).some((c) => String(c) === socket.userId);
+      if (!isOwner && !isCollaborator) return;
       socket.join(room(projectId));
       socket.projectId = projectId;
 

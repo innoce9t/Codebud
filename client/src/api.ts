@@ -10,6 +10,7 @@ import type {
   AiProvider,
   AiCatalog,
   ProfilePatch,
+  Collaborator,
 } from './types';
 
 export const http = axios.create({
@@ -96,6 +97,21 @@ export const fileApi = {
     http
       .post<{ file: FileNode }>(`/projects/${projectId}/files/${fileId}/restore`, { index })
       .then((r) => r.data.file),
+};
+
+export const collaboratorApi = {
+  list: (projectId: string) =>
+    http
+      .get<{ owner: Collaborator; collaborators: Collaborator[] }>(`/projects/${projectId}/collaborators`)
+      .then((r) => r.data),
+  add: (projectId: string, email: string) =>
+    http
+      .post<{ collaborators: Collaborator[] }>(`/projects/${projectId}/collaborators`, { email })
+      .then((r) => r.data.collaborators),
+  remove: (projectId: string, userId: string) =>
+    http
+      .delete<{ collaborators: Collaborator[] }>(`/projects/${projectId}/collaborators/${userId}`)
+      .then((r) => r.data.collaborators),
 };
 
 export const chatApi = {

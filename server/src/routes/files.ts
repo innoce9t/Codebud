@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import { File } from '../models/File.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler, badRequest, conflict, notFound } from '../utils/http.js';
-import { loadOwnedProject, normalizePath } from './helpers.js';
+import { loadAccessibleProject, normalizePath } from './helpers.js';
 import { applyEdit } from '../services/fileService.js';
 import { isAllowedFile, notAllowedMessage } from '../services/workspaceRules.js';
 import type { ProjectType } from '../models/Project.js';
@@ -18,7 +18,7 @@ router.use(requireAuth);
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const project = await loadOwnedProject(req);
+    const project = await loadAccessibleProject(req);
     const files = await File.find({ project: project._id }).sort({ path: 1 });
     res.json({ files });
   }),
@@ -33,7 +33,7 @@ const createSchema = z.object({
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const project = await loadOwnedProject(req);
+    const project = await loadAccessibleProject(req);
     const { path: rawPath, content, isFolder } = createSchema.parse(req.body);
     const path = normalizePath(rawPath);
     if (!isFolder && !isAllowedFile(project.type as ProjectType, path)) {
@@ -58,7 +58,7 @@ const updateSchema = z.object({ content: z.string() });
 router.put(
   '/:fileId',
   asyncHandler(async (req, res) => {
-    const project = await loadOwnedProject(req);
+    const project = await loadAccessibleProject(req);
     if (!mongoose.isValidObjectId(req.params.fileId)) throw badRequest('Invalid file id');
     const file = await File.findOne({ _id: req.params.fileId, project: project._id });
     if (!file) throw notFound('File not found');
@@ -76,7 +76,7 @@ const renameSchema = z.object({ path: z.string().min(1) });
 router.patch(
   '/:fileId',
   asyncHandler(async (req, res) => {
-    const project = await loadOwnedProject(req);
+    const project = await loadAccessibleProject(req);
     const file = await File.findOne({ _id: req.params.fileId, project: project._id });
     if (!file) throw notFound('File not found');
     const newPath = normalizePath(renameSchema.parse(req.body).path);
@@ -95,7 +95,7 @@ router.patch(
 router.delete(
   '/:fileId',
   asyncHandler(async (req, res) => {
-    const project = await loadOwnedProject(req);
+    const project = await loadAccessibleProject(req);
     const file = await File.findOne({ _id: req.params.fileId, project: project._id });
     if (!file) throw notFound('File not found');
     await file.deleteOne();
@@ -108,7 +108,7 @@ router.delete(
 router.get(
   '/:fileId/versions',
   asyncHandler(async (req, res) => {
-    const project = await loadOwnedProject(req);
+    const project = await loadAccessibleProject(req);
     const file = await File.findOne({ _id: req.params.fileId, project: project._id });
     if (!file) throw notFound('File not found');
     // Most recent first; index maps back into the stored array.
@@ -123,7 +123,7 @@ const restoreSchema = z.object({ index: z.number().int().min(0) });
 router.post(
   '/:fileId/restore',
   asyncHandler(async (req, res) => {
-    const project = await loadOwnedProject(req);
+    const project = await loadAccessibleProject(req);
     const file = await File.findOne({ _id: req.params.fileId, project: project._id });
     if (!file) throw notFound('File not found');
     const { index } = restoreSchema.parse(req.body);

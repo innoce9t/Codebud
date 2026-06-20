@@ -9,6 +9,8 @@ const projectSchema = new Schema(
     name: { type: String, required: true, trim: true },
     description: { type: String, default: '' },
     type: { type: String, enum: PROJECT_TYPES, required: true },
+    // Users (besides the owner) who can open and edit the project.
+    collaborators: { type: [{ type: Schema.Types.ObjectId, ref: 'User' }], default: [], index: true },
   },
   { timestamps: true },
 );

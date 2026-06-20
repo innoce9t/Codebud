@@ -4,10 +4,12 @@ import { ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { PageHeader, Button, Spinner } from '../components/ui';
 import { WORKSPACE_LIST } from '../workspaceMeta';
 import { projectApi } from '../api';
+import { useAuth } from '../auth';
 import type { Project, ProjectType } from '../types';
 
 export default function Workspaces() {
   const nav = useNavigate();
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[] | null>(null);
 
   async function refresh() {
@@ -84,7 +86,14 @@ export default function Workspaces() {
                         className="group cursor-pointer rounded-xl border border-slate-200 bg-surface p-5 shadow-sm transition hover:border-brand-300 hover:shadow-md"
                       >
                         <div className="flex items-start justify-between">
-                          <h3 className="truncate font-semibold text-slate-900">{p.name}</h3>
+                          <h3 className="flex items-center gap-2 truncate font-semibold text-slate-900">
+                            {p.name}
+                            {user && p.owner !== user._id && (
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                Shared
+                              </span>
+                            )}
+                          </h3>
                           <button
                             onClick={(e) => remove(p._id, e)}
                             className="text-slate-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100"

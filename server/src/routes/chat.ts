@@ -4,7 +4,7 @@ import { File } from '../models/File.js';
 import { ChatMessage } from '../models/ChatMessage.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../utils/http.js';
-import { loadOwnedProject } from './helpers.js';
+import { loadAccessibleProject } from './helpers.js';
 import { runAi, type ProviderConfig } from '../services/ai/index.js';
 import { applyEdits } from '../services/fileService.js';
 import { emitToProject } from '../realtime/socket.js';
@@ -37,7 +37,7 @@ router.use(requireAuth);
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const project = await loadOwnedProject(req);
+    const project = await loadAccessibleProject(req);
     const messages = await ChatMessage.find({ project: project._id }).sort({ createdAt: 1 });
     res.json({ messages });
   }),
@@ -49,7 +49,7 @@ const sendSchema = z.object({ message: z.string().min(1).max(8000) });
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const project = await loadOwnedProject(req);
+    const project = await loadAccessibleProject(req);
     const { message } = sendSchema.parse(req.body);
 
     const [files, history] = await Promise.all([
@@ -107,7 +107,7 @@ router.post(
 router.delete(
   '/',
   asyncHandler(async (req, res) => {
-    const project = await loadOwnedProject(req);
+    const project = await loadAccessibleProject(req);
     await ChatMessage.deleteMany({ project: project._id });
     res.json({ ok: true });
   }),

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { History, Keyboard, PanelBottom, PanelBottomClose } from 'lucide-react';
+import { History, Keyboard, PanelBottom, PanelBottomClose, Share2 } from 'lucide-react';
 import FileExplorer from '../components/FileExplorer';
 import CodeEditor from '../components/CodeEditor';
 import ChatPanel from '../components/ChatPanel';
 import OutputPanel from '../components/OutputPanel';
 import VersionHistory from '../components/VersionHistory';
+import ShareModal from '../components/ShareModal';
 import { Button, Modal, Spinner } from '../components/ui';
+import { useAuth } from '../auth';
 import { fileApi, projectApi } from '../api';
 import { getSocket } from '../socket';
 import { WORKSPACES } from '../workspaceMeta';
@@ -32,6 +34,7 @@ type SaveState = 'idle' | 'saving' | 'saved';
 export default function Editor() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
+  const { user } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [files, setFiles] = useState<FileNode[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -40,6 +43,7 @@ export default function Editor() {
   const [showOutput, setShowOutput] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [peers, setPeers] = useState<Peer[]>([]);
 
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -255,6 +259,7 @@ export default function Editor() {
 
   const meta = WORKSPACES[project.type];
   const MetaIcon = meta.Icon;
+  const isOwner = !!user && project.owner === user._id;
 
   return (
     <div className="flex h-full flex-col">
@@ -311,6 +316,11 @@ export default function Editor() {
           <div className="flex items-center justify-between border-b border-slate-200 bg-surface px-3 py-1.5">
             <span className="truncate text-sm text-slate-600">{active ? active.path : 'No file selected'}</span>
             <div className="flex items-center gap-2">
+              {isOwner && (
+                <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowShare(true)} title="Share project">
+                  <Share2 className="h-3.5 w-3.5" /> Share
+                </Button>
+              )}
               <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowShortcuts(true)} title="Keyboard shortcuts (?)">
                 <Keyboard className="h-3.5 w-3.5" /> Shortcuts
               </Button>
@@ -359,6 +369,8 @@ export default function Editor() {
           onRestored={reloadFiles}
         />
       )}
+
+      {showShare && id && <ShareModal projectId={id} onClose={() => setShowShare(false)} />}
 
       <Modal open={showShortcuts} onClose={() => setShowShortcuts(false)} title="Keyboard shortcuts">
         <ul className="space-y-2 text-sm">
