@@ -3,12 +3,12 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { History, Keyboard, PanelBottom, PanelBottomClose, Share2 } from 'lucide-react';
 import FileExplorer from '../components/FileExplorer';
 import CodeEditor from '../components/CodeEditor';
-import ChatPanel from '../components/ChatPanel';
 import OutputPanel from '../components/OutputPanel';
 import VersionHistory from '../components/VersionHistory';
 import ShareModal from '../components/ShareModal';
 import { Button, Modal, Spinner } from '../components/ui';
 import { useAuth } from '../auth';
+import { useChatContext } from '../context/ChatContext';
 import { collaboratorApi, fileApi, projectApi } from '../api';
 import { getSocket } from '../socket';
 import { WORKSPACES } from '../workspaceMeta';
@@ -41,6 +41,7 @@ export default function Editor() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const { user } = useAuth();
+  const { openChat, setChatProject } = useChatContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [project, setProject] = useState<Project | null>(null);
   const [files, setFiles] = useState<FileNode[]>([]);
@@ -62,6 +63,11 @@ export default function Editor() {
     setFiles(fresh);
   }, [id]);
 
+  // Keep the global chat's onFilesChanged in sync whenever reloadFiles changes.
+  useEffect(() => {
+    if (project) setChatProject(project._id, reloadFiles);
+  }, [project, reloadFiles, setChatProject]);
+
   // Initial load (joining first if arriving via a share link).
   useEffect(() => {
     if (!id) return;
@@ -82,6 +88,8 @@ export default function Editor() {
         setFiles(files);
         const firstFile = files.find((f) => !f.isFolder);
         setActiveId(firstFile?._id ?? null);
+        // Register this project with the global chat (opens drawer automatically on editor pages).
+        openChat(project._id, reloadFiles);
       } catch {
         nav('/');
       } finally {
@@ -182,7 +190,7 @@ export default function Editor() {
       run: runProject,
       save: saveNow,
       toggleOutput: () => setShowOutput((s) => !s),
-      focusChat: () => document.getElementById('cb-chat-input')?.focus(),
+      focusChat: () => { openChat(); setTimeout(() => document.getElementById('cb-chat-input')?.focus(), 50); },
       nextFile: () => cycleFile(1),
       prevFile: () => cycleFile(-1),
     };
@@ -384,10 +392,7 @@ export default function Editor() {
           </div>
         </main>
 
-        {/* Chat */}
-        <aside className="w-96 shrink-0">
-          <ChatPanel projectId={project._id} onFilesChanged={reloadFiles} />
-        </aside>
+        {/* Chat is rendered globally in AppLayout's GlobalChatDrawer */}
       </div>
 
       {showHistory && active && id && (

@@ -7,10 +7,11 @@ import type { ChatMessage } from '../types';
 
 interface Props {
   projectId: string;
-  onFilesChanged: () => void;
+  onFilesChanged?: () => void;
+  hideHeader?: boolean;
 }
 
-export default function ChatPanel({ projectId, onFilesChanged }: Props) {
+export default function ChatPanel({ projectId, onFilesChanged, hideHeader }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -49,7 +50,7 @@ export default function ChatPanel({ projectId, onFilesChanged }: Props) {
         res.userMessage,
         res.assistantMessage,
       ]);
-      if (res.edits.length) onFilesChanged();
+      if (res.edits.length) onFilesChanged?.();
     } catch (err) {
       setMessages((m) => [
         ...m,
@@ -72,17 +73,19 @@ export default function ChatPanel({ projectId, onFilesChanged }: Props) {
   }
 
   return (
-    <div className="flex h-full flex-col border-l border-slate-200 bg-surface">
-      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
-        <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
-          <Bot className="h-4 w-4 text-brand-600" /> AI Assistant
-        </span>
-        {messages.length > 0 && (
-          <button onClick={clearChat} className="text-xs text-slate-400 hover:text-red-500">
-            Clear
-          </button>
-        )}
-      </div>
+    <div className="flex h-full flex-col bg-surface">
+      {!hideHeader && (
+        <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+          <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <Bot className="h-4 w-4 text-brand-600" /> AI Assistant
+          </span>
+          {messages.length > 0 && (
+            <button onClick={clearChat} className="text-xs text-slate-400 hover:text-red-500">
+              Clear
+            </button>
+          )}
+        </div>
+      )}
 
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-auto p-3">
         {!loaded ? (
