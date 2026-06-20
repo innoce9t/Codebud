@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { History, PanelBottom, PanelBottomClose } from 'lucide-react';
+import { History, Keyboard, PanelBottom, PanelBottomClose } from 'lucide-react';
 import FileExplorer from '../components/FileExplorer';
 import CodeEditor from '../components/CodeEditor';
 import ChatPanel from '../components/ChatPanel';
 import OutputPanel from '../components/OutputPanel';
 import VersionHistory from '../components/VersionHistory';
-import { Button, Spinner } from '../components/ui';
+import { Button, Modal, Spinner } from '../components/ui';
 import { fileApi, projectApi } from '../api';
 import { getSocket } from '../socket';
 import { WORKSPACES } from '../workspaceMeta';
@@ -24,6 +24,7 @@ export default function Editor() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [showOutput, setShowOutput] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const active = files.find((f) => f._id === activeId) ?? null;
@@ -95,6 +96,66 @@ export default function Editor() {
       }
     }, 700);
   }
+
+  function runProject() {
+    setShowOutput(true);
+    // Let the output panel mount/show before triggering the run.
+    setTimeout(() => window.dispatchEvent(new CustomEvent('codebud:run')), 60);
+  }
+
+  async function saveNow() {
+    if (!active || !id) return;
+    clearTimeout(saveTimers.current[active._id]);
+    setSaveState('saving');
+    try {
+      await fileApi.save(id, active._id, active.content);
+      setSaveState('saved');
+      setTimeout(() => setSaveState('idle'), 1200);
+    } catch {
+      setSaveState('idle');
+    }
+  }
+
+  function cycleFile(dir: 1 | -1) {
+    const list = files.filter((f) => !f.isFolder);
+    if (!list.length) return;
+    const idx = Math.max(0, list.findIndex((f) => f._id === activeId));
+    const next = (idx + dir + list.length) % list.length;
+    setActiveId(list[next]._id);
+  }
+
+  // Keyboard shortcuts (capture phase so they win over the Monaco editor).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const mod = e.ctrlKey || e.metaKey;
+      const target = e.target as HTMLElement | null;
+      const typing =
+        !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+
+      if (mod && e.key === 'Enter') {
+        e.preventDefault();
+        runProject();
+      } else if (mod && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveNow();
+      } else if (mod && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setShowOutput((s) => !s);
+      } else if (mod && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        document.getElementById('cb-chat-input')?.focus();
+      } else if (e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault();
+        cycleFile(e.key === 'ArrowDown' ? 1 : -1);
+      } else if (e.key === '?' && !typing) {
+        e.preventDefault();
+        setShowShortcuts((s) => !s);
+      }
+    }
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files, activeId, id, active?.content]);
 
   async function createFile(path: string) {
     if (!id) return;
@@ -169,6 +230,9 @@ export default function Editor() {
           <div className="flex items-center justify-between border-b border-slate-200 bg-surface px-3 py-1.5">
             <span className="truncate text-sm text-slate-600">{active ? active.path : 'No file selected'}</span>
             <div className="flex items-center gap-2">
+              <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowShortcuts(true)} title="Keyboard shortcuts (?)">
+                <Keyboard className="h-3.5 w-3.5" /> Shortcuts
+              </Button>
               {active && (
                 <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowHistory(true)}>
                   <History className="h-3.5 w-3.5" /> History
@@ -214,6 +278,27 @@ export default function Editor() {
           onRestored={reloadFiles}
         />
       )}
+
+      <Modal open={showShortcuts} onClose={() => setShowShortcuts(false)} title="Keyboard shortcuts">
+        <ul className="space-y-2 text-sm">
+          {[
+            ['Run project', 'Ctrl/⌘ + Enter'],
+            ['Save file', 'Ctrl/⌘ + S'],
+            ['Toggle console / preview', 'Ctrl/⌘ + B'],
+            ['Focus AI chat', 'Ctrl/⌘ + I'],
+            ['Next file', 'Alt + ↓'],
+            ['Previous file', 'Alt + ↑'],
+            ['Show this help', '?'],
+          ].map(([label, keys]) => (
+            <li key={label} className="flex items-center justify-between">
+              <span className="text-slate-600">{label}</span>
+              <kbd className="rounded border border-slate-300 bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-700">
+                {keys}
+              </kbd>
+            </li>
+          ))}
+        </ul>
+      </Modal>
     </div>
   );
 }

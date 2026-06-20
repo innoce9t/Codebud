@@ -109,6 +109,7 @@ export default function ChatPanel({ projectId, onFilesChanged }: Props) {
       <form onSubmit={send} className="border-t border-slate-200 p-2">
         <div className="flex items-end gap-2">
           <textarea
+            id="cb-chat-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {

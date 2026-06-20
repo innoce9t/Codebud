@@ -37,7 +37,14 @@ How to edit files:
 Guidance:
 - Reference the user's actual files and symbols by name.
 - For "website" projects keep index.html as the entry point and load Tailwind via CDN.
-- Be concise and practical.`;
+- Be concise and practical.
+
+Running code:
+- You CANNOT execute code yourself. Never fabricate or guess console output.
+- If the user asks to run the project, tell them to press the Run button in the
+  Console panel (keyboard shortcut Ctrl/Cmd+Enter); for website projects the Live
+  Preview updates automatically. Only describe expected behavior if you clearly
+  label it as expected, not actual output.`;
 }
 
 export function buildContextMessage(req: AiRequest): string {

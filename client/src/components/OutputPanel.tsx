@@ -31,6 +31,13 @@ function WebsitePreview({ files }: { files: FileNode[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files, auto]);
 
+  // Allow a keyboard shortcut (Ctrl/Cmd+Enter) to refresh the preview.
+  useEffect(() => {
+    const onRun = () => setDoc(buildPreviewDoc(files));
+    window.addEventListener('codebud:run', onRun);
+    return () => window.removeEventListener('codebud:run', onRun);
+  }, [files]);
+
   return (
     <div className="flex h-full flex-col bg-surface">
       <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5">
@@ -96,6 +103,15 @@ function ConsoleRunner({ type, files }: { type: ProjectType; files: FileNode[] }
     }
   }
 
+  // Run via keyboard shortcut (Ctrl/Cmd+Enter) — use a ref to avoid stale files.
+  const runRef = useRef(run);
+  runRef.current = run;
+  useEffect(() => {
+    const onRun = () => runRef.current();
+    window.addEventListener('codebud:run', onRun);
+    return () => window.removeEventListener('codebud:run', onRun);
+  }, []);
+
   return (
     <div className="flex h-full flex-col bg-surface">
       <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5">
@@ -108,7 +124,7 @@ function ConsoleRunner({ type, files }: { type: ProjectType; files: FileNode[] }
               Clear
             </button>
           )}
-          <Button onClick={run} disabled={running} className="!py-1 !px-3 text-xs">
+          <Button onClick={run} disabled={running} className="!py-1 !px-3 text-xs" title="Run (Ctrl/Cmd+Enter)">
             <Play className="h-3.5 w-3.5" /> {running ? 'Running…' : 'Run'}
           </Button>
         </div>
