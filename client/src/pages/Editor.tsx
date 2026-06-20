@@ -15,6 +15,18 @@ import type { FileNode, Project } from '../types';
 
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2 MB per file
 
+interface Peer {
+  userId: string;
+  email: string;
+}
+
+const AVATAR_COLORS = ['bg-rose-500', 'bg-amber-500', 'bg-emerald-500', 'bg-sky-500', 'bg-violet-500'];
+function avatarColor(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
 type SaveState = 'idle' | 'saving' | 'saved';
 
 export default function Editor() {
@@ -28,6 +40,7 @@ export default function Editor() {
   const [showOutput, setShowOutput] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [peers, setPeers] = useState<Peer[]>([]);
 
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const active = files.find((f) => f._id === activeId) ?? null;
@@ -69,6 +82,14 @@ export default function Editor() {
         prev.map((f) => (f._id === payload.file._id && f._id !== activeId ? payload.file : f)),
       );
     });
+    // Live keystroke updates from collaborators — apply to the matching file.
+    const onLiveChange = (data: { fileId: string; content: string }) => {
+      setFiles((prev) => prev.map((f) => (f._id === data.fileId ? { ...f, content: data.content } : f)));
+    };
+    socket.on('editor:change', onLiveChange);
+    // Presence (who else is in this project).
+    const onPresence = (data: { members: Peer[] }) => setPeers(data.members);
+    socket.on('presence:sync', onPresence);
     return () => {
       socket.emit('project:leave', id);
       socket.off('file:created', refetch);
@@ -76,6 +97,8 @@ export default function Editor() {
       socket.off('file:renamed', refetch);
       socket.off('files:bulk-changed', refetch);
       socket.off('file:updated');
+      socket.off('editor:change', onLiveChange);
+      socket.off('presence:sync', onPresence);
     };
   }, [id, activeId, reloadFiles]);
 
@@ -247,6 +270,25 @@ export default function Editor() {
         <span className="ml-2 text-xs text-slate-400">
           {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : ''}
         </span>
+
+        {peers.length > 1 && (
+          <div className="ml-auto flex items-center gap-2" title={`${peers.length} active session(s)`}>
+            <div className="flex -space-x-2">
+              {peers.slice(0, 4).map((p, i) => (
+                <span
+                  key={i}
+                  title={p.email}
+                  className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface text-[10px] font-semibold text-white ${avatarColor(
+                    p.email || p.userId,
+                  )}`}
+                >
+                  {(p.email || '?').charAt(0).toUpperCase()}
+                </span>
+              ))}
+            </div>
+            <span className="text-xs text-slate-400">{peers.length} here</span>
+          </div>
+        )}
       </header>
 
       <div className="flex min-h-0 flex-1">

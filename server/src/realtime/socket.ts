@@ -9,6 +9,31 @@ let io: IOServer | null = null;
 
 interface AuthedSocket extends Socket {
   userId?: string;
+  email?: string;
+  projectId?: string;
+}
+
+interface Member {
+  userId: string;
+  email: string;
+}
+
+// projectId -> (socketId -> member) for presence.
+const presence = new Map<string, Map<string, Member>>();
+
+function membersOf(projectId: string): Member[] {
+  return [...(presence.get(projectId)?.values() ?? [])];
+}
+
+function emitPresence(projectId: string) {
+  io?.to(room(projectId)).emit('presence:sync', { members: membersOf(projectId) });
+}
+
+function removeFromPresence(socket: AuthedSocket) {
+  const projectId = socket.projectId;
+  if (!projectId) return;
+  presence.get(projectId)?.delete(socket.id);
+  emitPresence(projectId);
 }
 
 export function initRealtime(server: HttpServer): IOServer {
@@ -24,7 +49,9 @@ export function initRealtime(server: HttpServer): IOServer {
         (raw && cookie.parse(raw)[COOKIE_NAME]) ||
         (socket.handshake.auth?.token as string | undefined);
       if (!token) return next(new Error('unauthorized'));
-      socket.userId = verifyToken(token).sub;
+      const payload = verifyToken(token);
+      socket.userId = payload.sub;
+      socket.email = payload.email;
       next();
     } catch {
       next(new Error('unauthorized'));
@@ -37,12 +64,22 @@ export function initRealtime(server: HttpServer): IOServer {
       const project = await Project.findById(projectId).catch(() => null);
       if (!project || String(project.owner) !== socket.userId) return;
       socket.join(room(projectId));
-      socket.to(room(projectId)).emit('presence:join', { userId: socket.userId });
+      socket.projectId = projectId;
+
+      let members = presence.get(projectId);
+      if (!members) {
+        members = new Map();
+        presence.set(projectId, members);
+      }
+      members.set(socket.id, { userId: socket.userId!, email: socket.email ?? '' });
+      emitPresence(projectId);
     });
 
     socket.on('project:leave', (projectId: string) => {
       socket.leave(room(projectId));
-      socket.to(room(projectId)).emit('presence:leave', { userId: socket.userId });
+      presence.get(projectId)?.delete(socket.id);
+      socket.projectId = undefined;
+      emitPresence(projectId);
     });
 
     // Live, un-persisted keystroke broadcast for collaborative editing.
@@ -56,6 +93,8 @@ export function initRealtime(server: HttpServer): IOServer {
         });
       },
     );
+
+    socket.on('disconnect', () => removeFromPresence(socket));
   });
 
   return io;
