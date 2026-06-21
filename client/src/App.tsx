@@ -11,6 +11,7 @@ import AiModels from './pages/AiModels';
 import Theme from './pages/Theme';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
+import Docs from './pages/Docs';
 import Editor from './pages/Editor';
 import type { ReactNode } from 'react';
 
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="/theme" element={<Theme />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/docs" element={<Docs />} />
         {/* IDE lives in the shell too, but the sidebar shows collapsed there */}
         <Route path="/project/:id" element={<Editor />} />
       </Route>

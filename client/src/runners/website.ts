@@ -34,5 +34,11 @@ export function buildPreviewDoc(files: FileNode[]): string {
     },
   );
 
+  // Serve Tailwind's Play CDN from our own origin instead of cdn.tailwindcss.com.
+  // The public CDN is frequently blocked by ad-blockers / privacy extensions /
+  // corporate networks (and fails offline), which would leave the preview unstyled.
+  // The vendored copy lives at /vendor/tailwind.js and is cached by the service worker.
+  html = html.replace(/https?:\/\/cdn\.tailwindcss\.com[^"'\s>]*/gi, '/vendor/tailwind.js');
+
   return html;
 }

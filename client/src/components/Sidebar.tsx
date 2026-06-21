@@ -117,20 +117,12 @@ export default function Sidebar({ collapsed, onToggle, locked = false }: Props) 
         </div>
       </nav>
 
-      {/* Documentation (dummy external link) at the end */}
+      {/* Documentation at the end */}
       <div className="px-3 pb-2">
-        <a
-          href="https://docs.codebud.dev"
-          target="_blank"
-          rel="noreferrer"
-          title="Documentation"
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 ${
-            collapsed ? 'justify-center' : ''
-          }`}
-        >
+        <NavLink to="/docs" title="Documentation" className={navClass(collapsed)}>
           <BookOpen className="h-5 w-5 shrink-0" />
           {!collapsed && <span>Documentation</span>}
-        </a>
+        </NavLink>
       </div>
 
       {/* Profile card (click to open Profile) + logout */}

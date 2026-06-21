@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Search, Sparkles, Trash2 } from 'lucide-react';
 import { Button, Field, Modal, PageHeader, Spinner } from '../components/ui';
 import { projectApi, templateApi } from '../api';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -23,6 +23,11 @@ export default function Workspace() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  // List controls
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'updated' | 'created' | 'name'>('updated');
+  const [ownerFilter, setOwnerFilter] = useState<'all' | 'mine' | 'shared'>('all');
+
   async function refresh() {
     if (!type) return;
     setProjects(await projectApi.list(type));
@@ -36,6 +41,24 @@ export default function Workspace() {
     if (!type) return;
     templateApi.list().then((all) => setTemplates(all[type] ?? []));
   }, [type]);
+
+  // Apply search + owner filter + sort to the project list.
+  const visibleProjects = useMemo(() => {
+    if (!projects) return null;
+    const q = search.trim().toLowerCase();
+    const list = projects.filter((p) => {
+      const mine = !!user && p.owner === user._id;
+      if (ownerFilter === 'mine' && !mine) return false;
+      if (ownerFilter === 'shared' && mine) return false;
+      if (q && !`${p.name} ${p.description ?? ''}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    return list.sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      const key = sortBy === 'created' ? 'createdAt' : 'updatedAt';
+      return new Date(b[key] ?? 0).getTime() - new Date(a[key] ?? 0).getTime();
+    });
+  }, [projects, search, sortBy, ownerFilter, user]);
 
   if (!meta) return null;
   const Icon = meta.Icon;
@@ -140,7 +163,40 @@ export default function Workspace() {
 
       {/* Existing projects */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Your projects</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Your projects</h2>
+          {projects && projects.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search projects…"
+                  className="w-44 rounded-lg border border-slate-300 bg-surface py-1.5 pl-8 pr-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+              <select
+                value={ownerFilter}
+                onChange={(e) => setOwnerFilter(e.target.value as typeof ownerFilter)}
+                className="rounded-lg border border-slate-300 bg-surface px-2.5 py-1.5 text-sm text-slate-700 outline-none focus:border-brand-500"
+              >
+                <option value="all">All projects</option>
+                <option value="mine">Owned by me</option>
+                <option value="shared">Shared with me</option>
+              </select>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                className="rounded-lg border border-slate-300 bg-surface px-2.5 py-1.5 text-sm text-slate-700 outline-none focus:border-brand-500"
+              >
+                <option value="updated">Recently updated</option>
+                <option value="created">Recently created</option>
+                <option value="name">Name (A–Z)</option>
+              </select>
+            </div>
+          )}
+        </div>
         {projects === null ? (
           <div className="flex justify-center py-16">
             <Spinner className="h-8 w-8" />
@@ -149,9 +205,13 @@ export default function Workspace() {
           <div className="rounded-2xl border border-dashed border-slate-300 bg-surface py-14 text-center">
             <p className="text-slate-500">No projects yet — pick a quick-start template above to begin.</p>
           </div>
+        ) : visibleProjects && visibleProjects.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-surface py-14 text-center">
+            <p className="text-slate-500">No projects match your filters.</p>
+          </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((p) => (
+            {visibleProjects!.map((p) => (
               <div
                 key={p._id}
                 onClick={() => nav(`/project/${p._id}`)}
