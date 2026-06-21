@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useResizable } from '../hooks/useResizable';
+import { useIsMobile } from '../hooks/useIsMobile';
 import ReactMarkdown from 'react-markdown';
 import {
   ArrowLeft, Bot, Brain, Check, ChevronDown, MessageCircle,
@@ -85,14 +86,14 @@ export default function GlobalChatDrawer() {
             <Bot className="h-7 w-7 text-slate-400" />
           </div>
           <div>
-            <p className="font-semibold text-slate-700">No AI model connected</p>
-            <p className="mt-1 text-sm text-slate-400">Connect a provider to start chatting.</p>
+            <p className="font-semibold text-slate-700">Please connect AI model to enable ai chat</p>
+            <p className="mt-1 text-sm text-slate-400">Add a provider key and pick a model to start chatting.</p>
           </div>
           <button
-            onClick={() => { closeChat(); nav('/ai-models'); }}
+            onClick={() => nav('/ai-models')}
             className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >
-            Go to AI Models
+            Connect AI model
           </button>
         </div>
       </DrawerShell>
@@ -315,8 +316,8 @@ export default function GlobalChatDrawer() {
     return (
       <DrawerShell width={drawerWidth} onDragHandle={handleDrawerResize} onClose={closeChat}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 px-3 py-2">
-          <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+          <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
             <Bot className="h-4 w-4 text-brand-600" /> Project Sessions
           </span>
           <div className="flex items-center gap-1">
@@ -326,7 +327,7 @@ export default function GlobalChatDrawer() {
             >
               <Plus className="h-3.5 w-3.5" /> New
             </button>
-            <button onClick={closeChat} className="rounded p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <button onClick={closeChat} className="rounded p-1 text-slate-400 hover:text-slate-700">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -338,10 +339,10 @@ export default function GlobalChatDrawer() {
             <div className="flex justify-center py-8"><Spinner /></div>
           ) : sessions.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-12 text-center">
-              <MessageCircle className="h-8 w-8 text-slate-400 dark:text-slate-600" />
+              <MessageCircle className="h-8 w-8 text-slate-300" />
               <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">No conversations yet</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">Start a new session to chat with AI</p>
+                <p className="text-sm font-medium text-slate-600">No conversations yet</p>
+                <p className="text-xs text-slate-400">Start a new session to chat with AI</p>
               </div>
               <button
                 onClick={newSession}
@@ -351,12 +352,12 @@ export default function GlobalChatDrawer() {
               </button>
             </div>
           ) : (
-            <ul className="divide-y divide-slate-100 dark:divide-slate-700">
+            <ul className="divide-y divide-slate-100">
               {sessions.map((s) => (
                 <li
                   key={s._id}
-                  className={`group flex items-start gap-2 px-3 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-700/50 ${
-                    activeSessionId === s._id ? 'bg-brand-50 dark:bg-brand-900/20' : ''
+                  className={`group flex items-start gap-2 px-3 py-2.5 hover:bg-slate-100 ${
+                    activeSessionId === s._id ? 'bg-brand-50' : ''
                   }`}
                 >
                   {/* Dot indicator for active */}
@@ -374,19 +375,19 @@ export default function GlobalChatDrawer() {
                         onBlur={() => commitRename(s._id)}
                         onKeyDown={(e) => { if (e.key === 'Enter') commitRename(s._id); if (e.key === 'Escape') setRenaming(null); }}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full rounded border border-brand-300 bg-surface px-1.5 py-0.5 text-sm text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500/20"
+                        className="w-full rounded border border-brand-300 bg-surface px-1.5 py-0.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-brand-500/20"
                       />
                     ) : (
                       <>
-                        <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">{s.title}</p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500">{formatDistanceToNow(s.updatedAt)}</p>
+                        <p className="truncate text-sm font-medium text-slate-800">{s.title}</p>
+                        <p className="text-xs text-slate-400">{formatDistanceToNow(s.updatedAt)}</p>
                       </>
                     )}
                   </button>
 
                   {/* Actions */}
                   <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
-                    <button onClick={() => startRename(s._id, s.title)} className="rounded p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title="Rename">
+                    <button onClick={() => startRename(s._id, s.title)} className="rounded p-1 text-slate-400 hover:text-slate-700" title="Rename">
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button onClick={() => deleteSession(s._id)} className="rounded p-1 text-slate-400 hover:text-red-500" title="Delete">
@@ -448,21 +449,29 @@ function DrawerShell({
   children,
   width,
   onDragHandle,
-  onClose,
 }: {
   children: React.ReactNode;
   width: number;
   onDragHandle: (e: React.MouseEvent) => void;
   onClose: () => void;
 }) {
+  // On phones the drawer becomes a full-screen overlay (no side-by-side room, no resize).
+  const isMobile = useIsMobile();
   return (
-    <aside className="relative flex h-full shrink-0 flex-col border-l border-slate-200 bg-surface" style={{ width }}>
-      {/* Left-edge drag handle */}
-      <div
-        onMouseDown={onDragHandle}
-        className="absolute left-0 top-0 h-full w-1 cursor-col-resize hover:bg-brand-400/40 active:bg-brand-500/60 transition-colors z-10"
-        title="Drag to resize"
-      />
+    <aside
+      className={`flex h-full flex-col border-l border-slate-200 bg-surface ${
+        isMobile ? 'fixed inset-0 z-50 w-full' : 'relative shrink-0'
+      }`}
+      style={isMobile ? undefined : { width }}
+    >
+      {/* Left-edge drag handle (desktop only) */}
+      {!isMobile && (
+        <div
+          onMouseDown={onDragHandle}
+          className="absolute left-0 top-0 h-full w-1 cursor-col-resize hover:bg-brand-400/40 active:bg-brand-500/60 transition-colors z-10"
+          title="Drag to resize"
+        />
+      )}
       {children}
     </aside>
   );
@@ -548,8 +557,10 @@ function ActiveChat({
 
   // Execute directives the AI emitted (navigation or actions).
   function handleDirectives(content: string) {
+    // Navigation is a general-chat feature only. Project chat ingests file content that
+    // collaborators can control, and must never pull the user out of their open project.
     const navMatch = content.match(NAV_DIRECTIVE);
-    if (navMatch) setTimeout(() => nav(navMatch[1]), 300);
+    if (navMatch && !isProjectSession) setTimeout(() => nav(navMatch[1]), 300);
 
     const actionMatch = content.match(ACTION_DIRECTIVE);
     if (actionMatch) {

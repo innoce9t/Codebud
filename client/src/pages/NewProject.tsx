@@ -6,7 +6,7 @@ import { WORKSPACE_LIST } from '../workspaceMeta';
 export default function NewProject() {
   const nav = useNavigate();
   return (
-    <div className="mx-auto max-w-5xl px-8 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
       <PageHeader title="New project" subtitle="Choose a workspace type to get started." />
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

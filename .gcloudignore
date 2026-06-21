@@ -1,0 +1,30 @@
+# Controls what `gcloud ... --source` uploads to Cloud Build.
+# IMPORTANT: when this file exists, gcloud uses it INSTEAD of .gitignore — so the
+# `*.mp4` rule in .gitignore no longer strips the login background video here.
+# (Videos still stay out of git via .gitignore; this only affects the deploy upload.)
+
+.git/
+.gitignore
+.gcloudignore
+
+# Dependencies & build output (rebuilt inside the image)
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+
+# Logs / misc
+*.log
+.DS_Store
+README.md
+
+# Secrets — never upload
+.env
+.env.local
+*credentials*.env
+atlas-credentials.env
+
+# Videos: ship the active client background only.
+# Drop the 32MB disabled leftover and the unused root /public videos.
+client/public/1bg-video.mp4
+/public/

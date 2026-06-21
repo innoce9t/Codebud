@@ -19,7 +19,7 @@ export default function Profile() {
   const memberSince = user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—';
 
   return (
-    <div className="mx-auto max-w-3xl px-8 py-10">
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
       <PageHeader title="Profile" subtitle="Your account details." />
 
       <div className="rounded-2xl border border-slate-200 bg-surface p-6 shadow-sm">

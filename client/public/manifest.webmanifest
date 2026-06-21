@@ -1,0 +1,19 @@
+{
+  "name": "CodeBud — AI Coding Workspace",
+  "short_name": "CodeBud",
+  "description": "An AI-assisted coding workspace for JavaScript, Python and websites.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

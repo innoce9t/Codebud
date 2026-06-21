@@ -49,9 +49,45 @@ function systemPrefersDark() {
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
 }
 
+function hexToRgb(hex: string): [number, number, number] | null {
+  const m = hex.replace('#', '').trim();
+  const full = m.length === 3 ? m.split('').map((c) => c + c).join('') : m;
+  if (full.length !== 6 || /[^0-9a-fA-F]/.test(full)) return null;
+  const n = parseInt(full, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function mix(base: number[], target: number[], amt: number): string {
+  const f = (a: number, t: number) => Math.round(a + (t - a) * amt);
+  return `${f(base[0], target[0])} ${f(base[1], target[1])} ${f(base[2], target[2])}`;
+}
+
+/** Build the full --brand-* ramp from a single picked color (treated as the 600 shade). */
+export function rampFromHex(hex: string): Record<string, string> | null {
+  const base = hexToRgb(hex);
+  if (!base) return null;
+  const W = [255, 255, 255];
+  const K = [0, 0, 0];
+  return {
+    '--brand-50': mix(base, W, 0.9),
+    '--brand-100': mix(base, W, 0.8),
+    '--brand-400': mix(base, W, 0.32),
+    '--brand-500': mix(base, W, 0.16),
+    '--brand-600': `${base[0]} ${base[1]} ${base[2]}`,
+    '--brand-700': mix(base, K, 0.18),
+  };
+}
+
+export function isCustomAccent(accentId: string): boolean {
+  return accentId.startsWith('#');
+}
+
 function applyAccent(accentId: string) {
-  const accent = ACCENTS.find((a) => a.id === accentId) ?? ACCENTS[0];
-  for (const [k, v] of Object.entries(accent.vars)) {
+  // A hex value is a custom accent — derive its ramp; otherwise use a named preset.
+  const vars = isCustomAccent(accentId)
+    ? rampFromHex(accentId) ?? ACCENTS[0].vars
+    : (ACCENTS.find((a) => a.id === accentId) ?? ACCENTS[0]).vars;
+  for (const [k, v] of Object.entries(vars)) {
     document.documentElement.style.setProperty(k, v);
   }
 }

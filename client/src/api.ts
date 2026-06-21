@@ -60,9 +60,9 @@ export const authApi = {
 
 export const aiApi = {
   catalog: () => http.get<AiCatalog>('/ai/catalog').then((r) => r.data),
-  connect: (provider: AiProvider, apiKey: string) =>
+  connect: (provider: AiProvider | 'custom', apiKey: string) =>
     http.put(`/ai/providers/${provider}`, { apiKey }).then(() => undefined),
-  disconnect: (provider: AiProvider) =>
+  disconnect: (provider: AiProvider | 'custom') =>
     http.delete(`/ai/providers/${provider}`).then(() => undefined),
   setActive: (model: string) => http.put('/ai/active', { model }).then(() => undefined),
 };

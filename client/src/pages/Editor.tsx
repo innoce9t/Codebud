@@ -106,8 +106,7 @@ export default function Editor() {
         setFiles(files);
         const firstFile = files.find((f) => !f.isFolder);
         setActiveId(firstFile?._id ?? null);
-        // Auto-open the chat (project-scoped sessions) when an AI model is connected.
-        if (user?.activeModel) openChat();
+        // Chat open/closed state is global (open by default, remembered) — no per-project toggle here.
       } catch {
         nav('/');
       } finally {

@@ -10,6 +10,17 @@ export interface AiChatTurn {
 
 export type ChatMode = 'ask' | 'plan' | 'agent';
 
+export type ResponseStyle = 'concise' | 'balanced' | 'detailed';
+
+/** User-tunable generation controls applied to every request. */
+export interface GenerationParams {
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  responseStyle?: ResponseStyle;
+  systemInstruction?: string;
+}
+
 export interface AiRequest {
   projectType: 'javascript' | 'python' | 'website';
   projectName: string;
@@ -19,6 +30,8 @@ export interface AiRequest {
   mode?: ChatMode;
   /** Override the system prompt entirely (used for general/non-project chat). */
   systemOverride?: string;
+  /** User-tunable generation controls (temperature, max tokens, behaviour, …). */
+  params?: GenerationParams;
 }
 
 export interface AiResponse {
@@ -54,4 +67,8 @@ export interface ProviderConfig {
   provider: Provider;
   apiKey: string;
   model: string;
+  /** Base URL for OpenAI-compatible custom/local endpoints. */
+  baseUrl?: string;
+  /** User-tunable generation controls, applied to the request. */
+  params?: GenerationParams;
 }

@@ -1,6 +1,7 @@
 import mongoose, { Schema, type InferSchemaType } from 'mongoose';
 
-export const PROVIDERS = ['anthropic', 'openai', 'google'] as const;
+// 'custom' is a user-supplied OpenAI-compatible endpoint (local LLMs, self-hosted, etc.).
+export const PROVIDERS = ['anthropic', 'openai', 'google', 'custom'] as const;
 export type Provider = (typeof PROVIDERS)[number];
 
 const providerKeySchema = new Schema(

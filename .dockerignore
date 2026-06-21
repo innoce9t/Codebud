@@ -1,0 +1,23 @@
+# Keep the build context small and free of secrets/large binaries.
+**/node_modules
+**/dist
+**/build
+**/.vite
+.git
+.gitignore
+*.log
+.DS_Store
+
+# Secrets — never copy into an image
+.env
+.env.local
+*credentials*.env
+atlas-credentials.env
+
+# Video assets: ship the active background, but never the 32MB disabled leftover.
+# (Both stay out of git via .gitignore; this only controls the Docker build context.)
+client/public/1bg-video.mp4
+public/
+
+# Docs / misc not needed at build time
+README.md

@@ -24,11 +24,20 @@ router.get(
       connected: byProvider.has(p.id),
       last4: byProvider.get(p.id)?.last4 ?? null,
     }));
-    res.json({ providers, activeModel: user?.activeModel || null });
+    const customCred = byProvider.get('custom');
+    const custom = {
+      connected: !!customCred,
+      last4: customCred?.last4 ?? null,
+      baseUrl: user?.preferences?.ai?.custom?.baseUrl ?? '',
+      model: user?.preferences?.ai?.custom?.model ?? '',
+    };
+    res.json({ providers, custom, activeModel: user?.activeModel || null });
   }),
 );
 
 const connectSchema = z.object({ apiKey: z.string().min(8, 'API key looks too short').max(400) });
+// Local/custom endpoints often need no key (or a short placeholder), so relax it.
+const customConnectSchema = z.object({ apiKey: z.string().max(400) });
 
 // Connect / update a provider's API key.
 router.put(
@@ -36,7 +45,8 @@ router.put(
   asyncHandler(async (req, res) => {
     const provider = req.params.provider as Provider;
     if (!PROVIDERS.includes(provider)) throw badRequest('Unknown provider');
-    const { apiKey } = connectSchema.parse(req.body);
+    const schema = provider === 'custom' ? customConnectSchema : connectSchema;
+    const { apiKey } = schema.parse(req.body);
     const key = apiKey.trim();
     await ProviderKey.findOneAndUpdate(
       { user: req.userId, provider },
@@ -57,8 +67,9 @@ router.delete(
 
     const user = await User.findById(req.userId);
     if (user?.activeModel) {
+      const isCustom = provider === 'custom' && user.activeModel === 'custom';
       const found = findModel(user.activeModel);
-      if (found && found.provider === provider) {
+      if (isCustom || (found && found.provider === provider)) {
         user.activeModel = '';
         await user.save();
       }
@@ -74,6 +85,18 @@ router.put(
   '/active',
   asyncHandler(async (req, res) => {
     const { model } = activeSchema.parse(req.body);
+
+    // Custom OpenAI-compatible endpoint: needs a base URL + model configured.
+    if (model === 'custom') {
+      const user = await User.findById(req.userId);
+      const custom = user?.preferences?.ai?.custom;
+      if (!custom?.baseUrl || !custom?.model) {
+        throw badRequest('Set the base URL and model for your custom endpoint first');
+      }
+      await User.findByIdAndUpdate(req.userId, { activeModel: 'custom' });
+      return res.json({ ok: true, activeModel: 'custom' });
+    }
+
     const found = findModel(model);
     if (!found) throw notFound('Unknown model');
     const connected = await ProviderKey.findOne({ user: req.userId, provider: found.provider });

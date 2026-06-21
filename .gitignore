@@ -10,3 +10,5 @@ atlas-credentials.env
 .DS_Store
 coverage/
 .vite/
+# Large video assets (added at deploy time, not committed)
+*.mp4

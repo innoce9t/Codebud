@@ -139,6 +139,21 @@ const prefsSchema = z.object({
           accent: z.string().max(20).optional(),
         })
         .optional(),
+      ai: z
+        .object({
+          temperature: z.number().min(0).max(2).optional(),
+          maxTokens: z.number().int().min(256).max(32000).optional(),
+          topP: z.number().min(0).max(1).optional(),
+          responseStyle: z.enum(['concise', 'balanced', 'detailed']).optional(),
+          systemInstruction: z.string().max(4000).optional(),
+          custom: z
+            .object({
+              baseUrl: z.string().max(300).optional(),
+              model: z.string().max(120).optional(),
+            })
+            .optional(),
+        })
+        .optional(),
       editor: z
         .object({
           fontSize: z.number().int().min(10).max(24).optional(),
@@ -189,6 +204,11 @@ router.patch(
       if (p.language !== undefined) user.preferences.language = p.language;
       if (p.timezone !== undefined) user.preferences.timezone = p.timezone;
       if (p.theme) Object.assign(user.preferences.theme, p.theme);
+      if (p.ai) {
+        const { custom, ...rest } = p.ai;
+        Object.assign(user.preferences.ai, rest);
+        if (custom) Object.assign(user.preferences.ai.custom, custom);
+      }
       if (p.editor) Object.assign(user.preferences.editor, p.editor);
       if (p.keybindings) Object.assign(user.preferences.keybindings, p.keybindings);
       if (p.notifications) Object.assign(user.preferences.notifications, p.notifications);

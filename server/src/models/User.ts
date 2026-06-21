@@ -5,6 +5,14 @@ export interface IUserPreferences {
   language: string;
   timezone: string;
   theme: { mode: 'light' | 'dark' | 'system'; accent: string };
+  ai: {
+    temperature: number;
+    maxTokens: number;
+    topP: number;
+    responseStyle: 'concise' | 'balanced' | 'detailed';
+    systemInstruction: string;
+    custom: { baseUrl: string; model: string };
+  };
   editor: { fontSize: number; tabSize: number; wordWrap: boolean; minimap: boolean; aiCompletions: boolean };
   keybindings: {
     run: string;
@@ -80,11 +88,31 @@ const themePrefs = new Schema(
   { _id: false },
 );
 
+const aiPrefs = new Schema(
+  {
+    temperature: { type: Number, default: 0.7, min: 0, max: 2 },
+    maxTokens: { type: Number, default: 4096, min: 256, max: 32000 },
+    topP: { type: Number, default: 1, min: 0, max: 1 },
+    responseStyle: { type: String, enum: ['concise', 'balanced', 'detailed'], default: 'balanced' },
+    systemInstruction: { type: String, default: '', maxlength: 4000 },
+    // Custom OpenAI-compatible endpoint (the key itself lives encrypted in ProviderKey).
+    custom: {
+      type: new Schema(
+        { baseUrl: { type: String, default: '' }, model: { type: String, default: '' } },
+        { _id: false },
+      ),
+      default: () => ({}),
+    },
+  },
+  { _id: false },
+);
+
 const preferencesSchema = new Schema(
   {
     language: { type: String, default: 'en' },
     timezone: { type: String, default: 'UTC' },
     theme: { type: themePrefs, default: () => ({}) },
+    ai: { type: aiPrefs, default: () => ({}) },
     editor: { type: editorPrefs, default: () => ({}) },
     keybindings: { type: keybindingsPrefs, default: () => ({}) },
     notifications: { type: notifPrefs, default: () => ({}) },

@@ -40,8 +40,8 @@ codebud/
 │     └─ realtime/         # Socket.io (rooms per project)
 └─ client/                 # Vite + React + TypeScript + Tailwind
    └─ src/
-      ├─ pages/            # AuthPage, Dashboard, Workspace, Editor
-      ├─ components/       # FileExplorer, CodeEditor, ChatPanel, OutputPanel, VersionHistory
+      ├─ pages/            # AuthPage, Dashboard, Workspace, Editor, Settings, Theme, AI Models
+      ├─ components/       # FileExplorer, CodeEditor, GlobalChatDrawer, OutputPanel, VersionHistory
       └─ runners/          # website preview, JS module runner, Python (Pyodide)
 ```
 
@@ -128,6 +128,65 @@ docker compose down             # stop (add -v to also wipe the DB volume)
 
 > The compose setup serves over plain HTTP, so it sets `COOKIE_SECURE=false`.
 > Behind HTTPS in real production, drop that override so auth cookies require TLS.
+
+---
+
+## ☁️ Deploy to Google Cloud Run
+
+Cloud Run runs **one container per service**, so the repo also ships a **combined
+image** (root [`Dockerfile`](Dockerfile)): the Express server serves the REST API,
+Socket.io, **and** the built React client on a single port (`$PORT`, default `8080`).
+This is separate from the multi-container Compose setup above and doesn't affect it.
+
+### Build & run the combined image locally
+```bash
+docker build -t codebud .
+docker run -p 8080:8080 --env-file .env codebud
+# open http://localhost:8080
+```
+
+### Deploy
+Requires the **gcloud CLI** (`gcloud` — install from https://cloud.google.com/sdk)
+and a MongoDB Atlas URI (Cloud Run is stateless; use Atlas, not a local DB). The
+target GCP project is **`gen-lang-client-0536773966`** (the "Demos" project).
+
+The simplest path is the bundled [`deploy.sh`](deploy.sh). It enables the needed
+APIs, stores secrets in Secret Manager, builds from source via Cloud Build (no local
+Docker), deploys, then wires `CLIENT_ORIGIN` to the live URL:
+
+```bash
+gcloud auth login                      # one-time
+# Demo deploy (mock AI — only the DB is required):
+MONGODB_URI='mongodb+srv://USER:PASS@cluster0.xxxx.mongodb.net/codebud' ./deploy.sh
+
+# Real AI instead:
+AI_PROVIDER=anthropic ANTHROPIC_API_KEY='sk-ant-...' \
+MONGODB_URI='mongodb+srv://...' ./deploy.sh
+```
+
+<details><summary>Equivalent raw gcloud commands</summary>
+
+```bash
+gcloud config set project gen-lang-client-0536773966
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com secretmanager.googleapis.com
+printf '%s' 'mongodb+srv://USER:PASS@cluster0.xxxx.mongodb.net/codebud' | gcloud secrets create MONGODB_URI --data-file=-
+printf '%s' 'a-long-random-string'                                      | gcloud secrets create JWT_SECRET  --data-file=-
+
+gcloud run deploy codebud \
+  --source . --region us-central1 --allow-unauthenticated --port 8080 --session-affinity \
+  --set-env-vars NODE_ENV=production,AI_PROVIDER=mock \
+  --set-secrets MONGODB_URI=MONGODB_URI:latest,JWT_SECRET=JWT_SECRET:latest
+
+# then point CLIENT_ORIGIN at the URL it printed:
+gcloud run services update codebud --region us-central1 \
+  --set-env-vars CLIENT_ORIGIN=https://codebud-XXXXXX.us-central1.run.app
+```
+</details>
+
+Notes:
+- **Atlas Network Access** must allow Cloud Run — add `0.0.0.0/0` (or use a VPC connector + Atlas Private Endpoint for production).
+- `--session-affinity` keeps WebSocket (Socket.io) connections sticky to one instance.
+- Cookies are `Secure` automatically (`NODE_ENV=production` over Cloud Run's HTTPS).
 
 ---
 

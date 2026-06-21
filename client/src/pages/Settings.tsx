@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bot, Check, CreditCard, Download, TriangleAlert } from 'lucide-react';
+import { Check, CreditCard, Download, TriangleAlert, User, SlidersHorizontal, Code2, Sparkles, Server, ExternalLink, Trash2 } from 'lucide-react';
 import { PageHeader, Button } from '../components/ui';
 import { useConfirm } from '../components/ConfirmProvider';
-import { aiApi, authApi } from '../api';
+import { authApi, aiApi } from '../api';
+import type { AiCatalog } from '../types';
 import { useAuth } from '../auth';
 import {
   KEY_ACTIONS,
@@ -92,13 +93,300 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 const selectCls =
   'rounded-lg border border-slate-300 bg-surface px-3 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-500';
 
+type TabId = 'account' | 'ai' | 'preferences' | 'editor' | 'billing';
+const TABS: { id: TabId; label: string; Icon: React.FC<{ className?: string }> }[] = [
+  { id: 'account', label: 'Account', Icon: User },
+  { id: 'ai', label: 'AI Settings', Icon: Sparkles },
+  { id: 'preferences', label: 'Preferences', Icon: SlidersHorizontal },
+  { id: 'editor', label: 'Editor', Icon: Code2 },
+  { id: 'billing', label: 'Billing', Icon: CreditCard },
+];
+
+// ── AI Settings tab: providers, custom/local model, generation controls ──
+function AiSettingsTab() {
+  const { user, updateProfile } = useAuth();
+  const confirm = useConfirm();
+  const [catalog, setCatalog] = useState<AiCatalog | null>(null);
+  const [keyDrafts, setKeyDrafts] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState('');
+  const [customBaseUrl, setCustomBaseUrl] = useState('');
+  const [customModel, setCustomModel] = useState('');
+  const [customKey, setCustomKey] = useState('');
+
+  const ai = user?.preferences?.ai;
+  const [temperature, setTemperature] = useState(ai?.temperature ?? 0.7);
+  const [maxTokens, setMaxTokens] = useState(ai?.maxTokens ?? 4096);
+  const [topP, setTopP] = useState(ai?.topP ?? 1);
+  const [responseStyle, setResponseStyle] = useState<'concise' | 'balanced' | 'detailed'>(
+    ai?.responseStyle ?? 'balanced',
+  );
+  const [behaviour, setBehaviour] = useState(ai?.systemInstruction ?? '');
+
+  const load = () => aiApi.catalog().then(setCatalog).catch(() => {});
+  useEffect(() => {
+    load();
+  }, []);
+  useEffect(() => {
+    if (catalog?.custom) {
+      setCustomBaseUrl(catalog.custom.baseUrl);
+      setCustomModel(catalog.custom.model);
+    }
+  }, [catalog?.custom?.baseUrl, catalog?.custom?.model]);
+
+  const saveAi = (patch: Partial<{ temperature: number; maxTokens: number; topP: number; responseStyle: 'concise' | 'balanced' | 'detailed'; systemInstruction: string }>) =>
+    updateProfile({ preferences: { ai: patch } });
+
+  async function connect(provider: 'anthropic' | 'openai' | 'google', key: string) {
+    if (!key.trim()) return;
+    setBusy(provider);
+    try {
+      await aiApi.connect(provider, key.trim());
+      setKeyDrafts((d) => ({ ...d, [provider]: '' }));
+      await load();
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function disconnect(provider: 'anthropic' | 'openai' | 'google' | 'custom') {
+    const ok = await confirm({
+      title: 'Disconnect provider',
+      message: 'Remove this API key? Models from this provider will stop working until you reconnect.',
+      confirmLabel: 'Disconnect',
+      danger: true,
+    });
+    if (!ok) return;
+    setBusy(provider);
+    try {
+      await aiApi.disconnect(provider);
+      await load();
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function saveCustom() {
+    await updateProfile({
+      preferences: { ai: { custom: { baseUrl: customBaseUrl.trim(), model: customModel.trim() } } },
+    });
+    if (customKey.trim()) {
+      await aiApi.connect('custom', customKey.trim());
+      setCustomKey('');
+    }
+    await load();
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card title="AI providers" description="Connect a provider's API key here, then choose the active model on the AI Models page.">
+        {!catalog ? (
+          <p className="py-6 text-sm text-slate-400">Loading…</p>
+        ) : (
+          catalog.providers.map((p) => (
+            <div key={p.id} className="border-b border-slate-100 py-4 last:border-0">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-800">
+                    {p.name} · {p.vendor}
+                  </h3>
+                  <a
+                    href={p.getKeyUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline"
+                  >
+                    Get a key from {p.getKeyLabel} <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+                {p.connected ? (
+                  <span className="flex shrink-0 items-center gap-2 text-xs">
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700">
+                      Connected ···· {p.last4}
+                    </span>
+                    <button
+                      onClick={() => disconnect(p.id)}
+                      disabled={busy === p.id}
+                      className="text-slate-400 hover:text-red-500"
+                      title="Disconnect"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </span>
+                ) : (
+                  <span className="shrink-0 text-xs text-slate-400">Not connected</span>
+                )}
+              </div>
+
+              {!p.connected && (
+                <div className="mt-2 flex gap-2">
+                  <input
+                    type="password"
+                    placeholder={`${p.name} API key`}
+                    value={keyDrafts[p.id] || ''}
+                    onChange={(e) => setKeyDrafts((d) => ({ ...d, [p.id]: e.target.value }))}
+                    className={`${selectCls} flex-1`}
+                  />
+                  <Button
+                    variant="subtle"
+                    className="!py-1.5 text-xs"
+                    disabled={busy === p.id || !(keyDrafts[p.id] || '').trim()}
+                    onClick={() => connect(p.id, keyDrafts[p.id] || '')}
+                  >
+                    Connect
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </Card>
+
+      <Card
+        title="Custom / local model"
+        description="Point at any OpenAI-compatible endpoint — Ollama, LM Studio, vLLM, llama.cpp, or a self-hosted server."
+      >
+        <div className="grid gap-3">
+          <label className="text-xs font-medium text-slate-600">
+            Base URL
+            <input
+              value={customBaseUrl}
+              onChange={(e) => setCustomBaseUrl(e.target.value)}
+              placeholder="http://localhost:11434/v1"
+              className={`${selectCls} mt-1 w-full`}
+            />
+          </label>
+          <label className="text-xs font-medium text-slate-600">
+            Model name
+            <input
+              value={customModel}
+              onChange={(e) => setCustomModel(e.target.value)}
+              placeholder="llama3.1 · qwen2.5-coder · …"
+              className={`${selectCls} mt-1 w-full`}
+            />
+          </label>
+          <label className="text-xs font-medium text-slate-600">
+            API key <span className="font-normal text-slate-400">(optional for local servers)</span>
+            <input
+              type="password"
+              value={customKey}
+              onChange={(e) => setCustomKey(e.target.value)}
+              placeholder={catalog?.custom?.connected ? '•••• saved — type to replace' : 'sk-… or leave blank'}
+              className={`${selectCls} mt-1 w-full`}
+            />
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="subtle"
+              className="!py-1.5 text-xs"
+              disabled={!customBaseUrl.trim() || !customModel.trim()}
+              onClick={saveCustom}
+            >
+              <Server className="h-4 w-4" /> Save endpoint
+            </Button>
+            {catalog?.custom?.model && (
+              <span className="text-xs text-slate-400">Activate it on the AI Models page.</span>
+            )}
+            {catalog?.custom?.connected && (
+              <button onClick={() => disconnect('custom')} className="text-xs text-slate-400 hover:text-red-500">
+                Remove key
+              </button>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      <Card title="Generation" description="Tune how the AI responds. Applies to your active model in every chat.">
+        <Row label="Temperature" hint="Higher = more creative, lower = more focused (0–2)">
+          <div className="flex items-center gap-2">
+            <input
+              type="range"
+              min={0}
+              max={2}
+              step={0.1}
+              value={temperature}
+              onChange={(e) => setTemperature(Number(e.target.value))}
+              onPointerUp={() => saveAi({ temperature })}
+              onBlur={() => saveAi({ temperature })}
+            />
+            <span className="w-8 text-right text-sm tabular-nums text-slate-700">{temperature.toFixed(1)}</span>
+          </div>
+        </Row>
+        <Row label="Top-P" hint="Nucleus sampling — diversity of word choices (0–1)">
+          <div className="flex items-center gap-2">
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={topP}
+              onChange={(e) => setTopP(Number(e.target.value))}
+              onPointerUp={() => saveAi({ topP })}
+              onBlur={() => saveAi({ topP })}
+            />
+            <span className="w-8 text-right text-sm tabular-nums text-slate-700">{topP.toFixed(2)}</span>
+          </div>
+        </Row>
+        <Row label="Max response tokens" hint="Caps how long a single reply can be">
+          <select
+            className={selectCls}
+            value={maxTokens}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              setMaxTokens(v);
+              saveAi({ maxTokens: v });
+            }}
+          >
+            {[1024, 2048, 4096, 8192, 16000, 32000].map((n) => (
+              <option key={n} value={n}>
+                {n.toLocaleString()}
+              </option>
+            ))}
+          </select>
+        </Row>
+        <Row label="Response style" hint="Overall verbosity of replies">
+          <select
+            className={selectCls}
+            value={responseStyle}
+            onChange={(e) => {
+              const v = e.target.value as 'concise' | 'balanced' | 'detailed';
+              setResponseStyle(v);
+              saveAi({ responseStyle: v });
+            }}
+          >
+            <option value="concise">Concise</option>
+            <option value="balanced">Balanced</option>
+            <option value="detailed">Detailed</option>
+          </select>
+        </Row>
+        <div className="border-t border-slate-100 py-3">
+          <label className="text-sm text-slate-700">Custom behaviour</label>
+          <p className="text-xs text-slate-400">
+            Persistent instructions added to every conversation — tone, persona, rules, preferred libraries, etc.
+          </p>
+          <textarea
+            value={behaviour}
+            onChange={(e) => setBehaviour(e.target.value)}
+            onBlur={() => saveAi({ systemInstruction: behaviour })}
+            rows={4}
+            placeholder="e.g. Always respond in TypeScript. Prefer functional style. Keep explanations short."
+            className={`${selectCls} mt-2 w-full`}
+          />
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function Settings() {
   const { user, updateProfile, logout, deleteAccount } = useAuth();
   const confirm = useConfirm();
   const nav = useNavigate();
+  const hashTab = window.location.hash.replace('#', '') as TabId;
+  const [tab, setTab] = useState<TabId>(TABS.some((t) => t.id === hashTab) ? hashTab : 'account');
   const [name, setName] = useState(user?.name ?? '');
   const [status, setStatus] = useState('');
-  const [activeModelName, setActiveModelName] = useState<string | null>(null);
 
   // Change password
   const [curPw, setCurPw] = useState('');
@@ -116,15 +404,6 @@ export default function Settings() {
   const [recording, setRecording] = useState<KeyActionId | null>(null);
 
   useEffect(() => setName(user?.name ?? ''), [user?.name]);
-  useEffect(() => {
-    aiApi
-      .catalog()
-      .then((c) => {
-        const m = c.providers.flatMap((p) => p.models).find((m) => m.id === c.activeModel);
-        setActiveModelName(m ? m.name : null);
-      })
-      .catch(() => setActiveModelName(null));
-  }, []);
 
   async function save(patch: ProfilePatch) {
     setStatus('Saving…');
@@ -233,341 +512,357 @@ export default function Settings() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-8 py-10">
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
       <PageHeader
         title="Settings"
         subtitle="Manage your account, preferences and plan."
         action={status ? <span className="text-sm text-slate-400">{status}</span> : undefined}
       />
 
-      <div className="space-y-6">
-        <Card title="Account">
-          <Row label="Name">
-            <div className="flex items-center gap-2">
-              <input value={name} onChange={(e) => setName(e.target.value)} className={selectCls} />
-              <Button
-                variant="subtle"
-                className="!py-1.5 text-xs"
-                disabled={!name.trim() || name === user?.name}
-                onClick={() => save({ name: name.trim() })}
-              >
-                Save
-              </Button>
-            </div>
-          </Row>
-          <Row label="Email">
-            <span className="text-sm font-medium text-slate-800">{user?.email}</span>
-          </Row>
-        </Card>
+      {/* Category tabs */}
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-slate-200">
+        {TABS.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={`flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition ${
+              tab === id
+                ? 'border-brand-600 text-brand-700'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Icon className="h-4 w-4" /> {label}
+          </button>
+        ))}
+      </div>
 
-        <Card title="Security" description="Change your password.">
-          <div className="grid max-w-md gap-3">
-            <input
-              type="password"
-              placeholder="Current password"
-              value={curPw}
-              onChange={(e) => setCurPw(e.target.value)}
-              className={`${selectCls} w-full`}
-            />
-            <input
-              type="password"
-              placeholder="New password"
-              value={newPw}
-              onChange={(e) => setNewPw(e.target.value)}
-              className={`${selectCls} w-full`}
-            />
-            <input
-              type="password"
-              placeholder="Confirm new password"
-              value={confirmPw}
-              onChange={(e) => setConfirmPw(e.target.value)}
-              className={`${selectCls} w-full`}
-            />
-            {pwMsg && (
-              <p className={`text-sm ${pwMsg === 'Password updated.' ? 'text-emerald-600' : 'text-red-600'}`}>
-                {pwMsg}
-              </p>
-            )}
-            <div>
-              <Button onClick={changePassword} disabled={pwBusy || !curPw || !newPw}>
-                {pwBusy ? 'Updating…' : 'Update password'}
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        <Card title="Preferences">
-          <Row label="Language" hint="Interface language">
-            <select
-              className={selectCls}
-              value={prefs?.language ?? 'en'}
-              onChange={(e) => save({ preferences: { language: e.target.value } })}
-            >
-              {LANGUAGES.map(([code, label]) => (
-                <option key={code} value={code}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </Row>
-          <Row label="Time zone" hint="Used for dates and timestamps">
-            <select
-              className={`${selectCls} max-w-[220px]`}
-              value={prefs?.timezone ?? 'UTC'}
-              onChange={(e) => save({ preferences: { timezone: e.target.value } })}
-            >
-              {TIMEZONES.map((z) => (
-                <option key={z} value={z}>
-                  {z}
-                </option>
-              ))}
-            </select>
-          </Row>
-        </Card>
-
-        <Card title="Editor" description="These apply to the code editor in your projects.">
-          <Row label="Font size">
-            <select className={selectCls} value={editor.fontSize} onChange={(e) => save({ preferences: { editor: { fontSize: Number(e.target.value) } } })}>
-              {[11, 12, 13, 14, 16, 18, 20].map((n) => (
-                <option key={n} value={n}>
-                  {n}px
-                </option>
-              ))}
-            </select>
-          </Row>
-          <Row label="Tab size">
-            <select className={selectCls} value={editor.tabSize} onChange={(e) => save({ preferences: { editor: { tabSize: Number(e.target.value) } } })}>
-              {[2, 4, 8].map((n) => (
-                <option key={n} value={n}>
-                  {n} spaces
-                </option>
-              ))}
-            </select>
-          </Row>
-          <Row label="Word wrap">
-            <Toggle checked={editor.wordWrap} onChange={(v) => save({ preferences: { editor: { wordWrap: v } } })} />
-          </Row>
-          <Row label="Minimap">
-            <Toggle checked={editor.minimap} onChange={(v) => save({ preferences: { editor: { minimap: v } } })} />
-          </Row>
-          <Row label="AI inline completions" hint="Ghost-text suggestions as you type (uses your active model)">
-            <Toggle
-              checked={editor.aiCompletions}
-              onChange={(v) => save({ preferences: { editor: { aiCompletions: v } } })}
-            />
-          </Row>
-        </Card>
-
-        <Card title="Keyboard shortcuts" description="Click a shortcut, then press the new keys. These apply in the project editor.">
-          {KEY_ACTIONS.map((a) => (
-            <Row key={a.id} label={a.label}>
+      {/* ── Account ─────────────────────────────────────────── */}
+      {tab === 'account' && (
+        <div className="space-y-6">
+          <Card title="Account">
+            <Row label="Name">
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setRecording(a.id)}
-                  className={`min-w-[120px] rounded-lg border px-2.5 py-1 text-center font-mono text-xs transition ${
-                    recording === a.id
-                      ? 'border-brand-500 text-brand-600 ring-2 ring-brand-500/20'
-                      : 'border-slate-300 text-slate-700 hover:border-slate-400'
-                  }`}
+                <input value={name} onChange={(e) => setName(e.target.value)} className={selectCls} />
+                <Button
+                  variant="subtle"
+                  className="!py-1.5 text-xs"
+                  disabled={!name.trim() || name === user?.name}
+                  onClick={() => save({ name: name.trim() })}
                 >
-                  {recording === a.id ? 'Press keys… (Esc)' : formatCombo(bindings[a.id])}
-                </button>
-                {bindings[a.id] !== DEFAULT_KEYBINDINGS[a.id] && (
-                  <button
-                    onClick={() => save({ preferences: { keybindings: { [a.id]: DEFAULT_KEYBINDINGS[a.id] } } })}
-                    className="text-xs text-slate-400 hover:text-slate-700"
-                  >
-                    Reset
-                  </button>
-                )}
+                  Save
+                </Button>
               </div>
             </Row>
-          ))}
-        </Card>
+            <Row label="Email">
+              <span className="text-sm font-medium text-slate-800">{user?.email}</span>
+            </Row>
+          </Card>
 
-        <Card title="Notifications">
-          <Row label="Product updates" hint="News about new CodeBud features">
-            <Toggle checked={notif.productUpdates} onChange={(v) => save({ preferences: { notifications: { productUpdates: v } } })} />
-          </Row>
-          <Row label="Project activity" hint="Alerts about changes in your projects">
-            <Toggle checked={notif.projectActivity} onChange={(v) => save({ preferences: { notifications: { projectActivity: v } } })} />
-          </Row>
-        </Card>
-
-        <Card title="Plan" description="Your current subscription tier.">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {TIERS.map((t) => {
-              const current = t.id === tier;
-              return (
-                <div
-                  key={t.id}
-                  className={`rounded-xl border p-4 ${current ? 'border-brand-400 bg-brand-500/10 ring-1 ring-brand-400/30' : 'border-slate-200'}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-900">{t.name}</h3>
-                    {current && (
-                      <span className="flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-medium text-white">
-                        <Check className="h-3 w-3" /> Current
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-lg font-bold text-slate-900">{t.price}</p>
-                  <ul className="mt-2 space-y-1">
-                    {t.features.map((f) => (
-                      <li key={f} className="flex items-start gap-1.5 text-xs text-slate-500">
-                        <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-500" /> {f}
-                      </li>
-                    ))}
-                  </ul>
-                  {!current && (
-                    <Button variant="subtle" className="mt-3 w-full !py-1.5 text-xs" onClick={() => save({ subscriptionTier: t.id })}>
-                      {t.id === 'free' ? 'Downgrade' : 'Upgrade'}
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-
-        <Card title="Billing" description="Demo billing — no real charges are made.">
-          <Row label="Current plan">
-            <span className="text-sm font-medium text-slate-800 capitalize">
-              {tier} · {tierPrice}
-            </span>
-          </Row>
-          <Row label="Payment method">
-            {hasCard ? (
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
-                  <CreditCard className="h-4 w-4 text-slate-400" />
-                  {billing!.cardBrand} ···· {billing!.cardLast4}
-                </span>
-                <Button
-                  variant="ghost"
-                  className="!py-1 !px-2 text-xs"
-                  onClick={() => save({ billing: { cardBrand: '', cardLast4: '' } })}
-                >
-                  Remove
-                </Button>
-              </div>
-            ) : (
-              <span className="text-sm text-slate-400">No card on file</span>
-            )}
-          </Row>
-
-          {!hasCard && (
-            <div className="mt-3 grid max-w-md gap-2 sm:grid-cols-2">
+          <Card title="Security" description="Change your password.">
+            <div className="grid max-w-md gap-3">
               <input
-                placeholder="Card number"
-                value={cardNum}
-                onChange={(e) => setCardNum(e.target.value)}
-                className={`${selectCls} w-full sm:col-span-2`}
-                inputMode="numeric"
+                type="password"
+                placeholder="Current password"
+                value={curPw}
+                onChange={(e) => setCurPw(e.target.value)}
+                className={`${selectCls} w-full`}
               />
-              <input placeholder="MM / YY" value={cardExp} onChange={(e) => setCardExp(e.target.value)} className={`${selectCls} w-full`} />
-              <input placeholder="CVC" value={cardCvc} onChange={(e) => setCardCvc(e.target.value)} className={`${selectCls} w-full`} inputMode="numeric" />
-              <div className="sm:col-span-2">
-                <Button onClick={saveCard} disabled={cardNum.replace(/\D/g, '').length < 13}>
-                  Save card
+              <input
+                type="password"
+                placeholder="New password"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                className={`${selectCls} w-full`}
+              />
+              <input
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                className={`${selectCls} w-full`}
+              />
+              {pwMsg && (
+                <p className={`text-sm ${pwMsg === 'Password updated.' ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {pwMsg}
+                </p>
+              )}
+              <div>
+                <Button onClick={changePassword} disabled={pwBusy || !curPw || !newPw}>
+                  {pwBusy ? 'Updating…' : 'Update password'}
                 </Button>
-                <span className="ml-2 text-xs text-slate-400">Use any number, e.g. 4242 4242 4242 4242</span>
               </div>
             </div>
-          )}
+          </Card>
 
-          <div className="mt-5">
-            <p className="mb-2 text-sm font-medium text-slate-600">Invoices</p>
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs text-slate-400">
-                <tr>
-                  <th className="py-1 font-medium">Date</th>
-                  <th className="font-medium">Amount</th>
-                  <th className="font-medium">Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {['2026-06-01', '2026-05-01', '2026-04-01'].map((d) => (
-                  <tr key={d}>
-                    <td className="py-2 text-slate-700">{d}</td>
-                    <td className="text-slate-700">{tierPrice}</td>
-                    <td>
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Paid</span>
-                    </td>
-                    <td className="text-right">
-                      <button
-                        onClick={() => alert('Demo invoice — no PDF in this build.')}
-                        className="text-xs text-brand-600 hover:underline"
-                      >
-                        Receipt
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+          <Card title="Data" description="Download a copy of all your projects, files and chat history.">
+            <Row label="Export account data" hint="Generates a JSON file you can download">
+              <Button variant="subtle" onClick={exportData}>
+                <Download className="h-4 w-4" /> Export
+              </Button>
+            </Row>
+          </Card>
 
-        <Card title="AI">
-          <Row label="Active model">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
-                <Bot className="h-4 w-4 text-brand-600" />
-                {activeModelName ?? 'Default assistant'}
-              </span>
-              <Button variant="subtle" className="!py-1 !px-2 text-xs" onClick={() => nav('/ai-models')}>
-                Manage
+          <Card title="Session">
+            <Row label="Sign out of CodeBud">
+              <Button
+                variant="subtle"
+                onClick={async () => {
+                  await logout();
+                  nav('/login');
+                }}
+              >
+                Log out
+              </Button>
+            </Row>
+          </Card>
+
+          <section className="rounded-2xl border border-red-200 bg-red-50/40 p-5">
+            <h2 className="flex items-center gap-2 font-semibold text-red-700">
+              <TriangleAlert className="h-4 w-4" /> Danger zone
+            </h2>
+            <div className="mt-3 flex items-center justify-between gap-4">
+              <p className="text-sm text-slate-600">
+                Permanently delete your account and all projects, files and chat history.
+              </p>
+              <Button variant="danger" onClick={removeAccount}>
+                Delete account
               </Button>
             </div>
-          </Row>
-        </Card>
+          </section>
+        </div>
+      )}
 
-        <Card title="Appearance">
-          <Row label="Theme & accent color" hint="Light / dark / system and accent colors">
-            <Button variant="subtle" className="!py-1 !px-2 text-xs" onClick={() => nav('/theme')}>
-              Open Theme
-            </Button>
-          </Row>
-        </Card>
+      {/* ── AI Settings ─────────────────────────────────────── */}
+      {tab === 'ai' && <AiSettingsTab />}
 
-        <Card title="Data" description="Download a copy of all your projects, files and chat history.">
-          <Row label="Export account data" hint="Generates a JSON file you can download">
-            <Button variant="subtle" onClick={exportData}>
-              <Download className="h-4 w-4" /> Export
-            </Button>
-          </Row>
-        </Card>
+      {/* ── Preferences ─────────────────────────────────────── */}
+      {tab === 'preferences' && (
+        <div className="space-y-6">
+          <Card title="Preferences">
+            <Row label="Language" hint="Interface language">
+              <select
+                className={selectCls}
+                value={prefs?.language ?? 'en'}
+                onChange={(e) => save({ preferences: { language: e.target.value } })}
+              >
+                {LANGUAGES.map(([code, label]) => (
+                  <option key={code} value={code}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </Row>
+            <Row label="Time zone" hint="Used for dates and timestamps">
+              <select
+                className={`${selectCls} max-w-[220px]`}
+                value={prefs?.timezone ?? 'UTC'}
+                onChange={(e) => save({ preferences: { timezone: e.target.value } })}
+              >
+                {TIMEZONES.map((z) => (
+                  <option key={z} value={z}>
+                    {z}
+                  </option>
+                ))}
+              </select>
+            </Row>
+          </Card>
 
-        <Card title="Session">
-          <Row label="Sign out of CodeBud">
-            <Button
-              variant="subtle"
-              onClick={async () => {
-                await logout();
-                nav('/login');
-              }}
-            >
-              Log out
-            </Button>
-          </Row>
-        </Card>
+          <Card title="Notifications">
+            <Row label="Product updates" hint="News about new CodeBud features">
+              <Toggle checked={notif.productUpdates} onChange={(v) => save({ preferences: { notifications: { productUpdates: v } } })} />
+            </Row>
+            <Row label="Project activity" hint="Alerts about changes in your projects">
+              <Toggle checked={notif.projectActivity} onChange={(v) => save({ preferences: { notifications: { projectActivity: v } } })} />
+            </Row>
+          </Card>
+        </div>
+      )}
 
-        <section className="rounded-2xl border border-red-200 bg-red-50/40 p-5">
-          <h2 className="flex items-center gap-2 font-semibold text-red-700">
-            <TriangleAlert className="h-4 w-4" /> Danger zone
-          </h2>
-          <div className="mt-3 flex items-center justify-between gap-4">
-            <p className="text-sm text-slate-600">
-              Permanently delete your account and all projects, files and chat history.
-            </p>
-            <Button variant="danger" onClick={removeAccount}>
-              Delete account
-            </Button>
-          </div>
-        </section>
-      </div>
+      {/* ── Editor ──────────────────────────────────────────── */}
+      {tab === 'editor' && (
+        <div className="space-y-6">
+          <Card title="Editor" description="These apply to the code editor in your projects.">
+            <Row label="Font size">
+              <select className={selectCls} value={editor.fontSize} onChange={(e) => save({ preferences: { editor: { fontSize: Number(e.target.value) } } })}>
+                {[11, 12, 13, 14, 16, 18, 20].map((n) => (
+                  <option key={n} value={n}>
+                    {n}px
+                  </option>
+                ))}
+              </select>
+            </Row>
+            <Row label="Tab size">
+              <select className={selectCls} value={editor.tabSize} onChange={(e) => save({ preferences: { editor: { tabSize: Number(e.target.value) } } })}>
+                {[2, 4, 8].map((n) => (
+                  <option key={n} value={n}>
+                    {n} spaces
+                  </option>
+                ))}
+              </select>
+            </Row>
+            <Row label="Word wrap">
+              <Toggle checked={editor.wordWrap} onChange={(v) => save({ preferences: { editor: { wordWrap: v } } })} />
+            </Row>
+            <Row label="Minimap">
+              <Toggle checked={editor.minimap} onChange={(v) => save({ preferences: { editor: { minimap: v } } })} />
+            </Row>
+            <Row label="AI inline completions" hint="Ghost-text suggestions as you type (uses your active model)">
+              <Toggle
+                checked={editor.aiCompletions}
+                onChange={(v) => save({ preferences: { editor: { aiCompletions: v } } })}
+              />
+            </Row>
+          </Card>
+
+          <Card title="Keyboard shortcuts" description="Click a shortcut, then press the new keys. These apply in the project editor.">
+            {KEY_ACTIONS.map((a) => (
+              <Row key={a.id} label={a.label}>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setRecording(a.id)}
+                    className={`min-w-[120px] rounded-lg border px-2.5 py-1 text-center font-mono text-xs transition ${
+                      recording === a.id
+                        ? 'border-brand-500 text-brand-600 ring-2 ring-brand-500/20'
+                        : 'border-slate-300 text-slate-700 hover:border-slate-400'
+                    }`}
+                  >
+                    {recording === a.id ? 'Press keys… (Esc)' : formatCombo(bindings[a.id])}
+                  </button>
+                  {bindings[a.id] !== DEFAULT_KEYBINDINGS[a.id] && (
+                    <button
+                      onClick={() => save({ preferences: { keybindings: { [a.id]: DEFAULT_KEYBINDINGS[a.id] } } })}
+                      className="text-xs text-slate-400 hover:text-slate-700"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </Row>
+            ))}
+          </Card>
+        </div>
+      )}
+
+      {/* ── Billing ─────────────────────────────────────────── */}
+      {tab === 'billing' && (
+        <div className="space-y-6">
+          <Card title="Plan" description="Your current subscription tier.">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {TIERS.map((t) => {
+                const current = t.id === tier;
+                return (
+                  <div
+                    key={t.id}
+                    className={`rounded-xl border p-4 ${current ? 'border-brand-400 bg-brand-500/10 ring-1 ring-brand-400/30' : 'border-slate-200'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-slate-900">{t.name}</h3>
+                      {current && (
+                        <span className="flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-medium text-white">
+                          <Check className="h-3 w-3" /> Current
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-lg font-bold text-slate-900">{t.price}</p>
+                    <ul className="mt-2 space-y-1">
+                      {t.features.map((f) => (
+                        <li key={f} className="flex items-start gap-1.5 text-xs text-slate-500">
+                          <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-500" /> {f}
+                        </li>
+                      ))}
+                    </ul>
+                    {!current && (
+                      <Button variant="subtle" className="mt-3 w-full !py-1.5 text-xs" onClick={() => save({ subscriptionTier: t.id })}>
+                        {t.id === 'free' ? 'Downgrade' : 'Upgrade'}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card title="Billing" description="Demo billing — no real charges are made.">
+            <Row label="Current plan">
+              <span className="text-sm font-medium text-slate-800 capitalize">
+                {tier} · {tierPrice}
+              </span>
+            </Row>
+            <Row label="Payment method">
+              {hasCard ? (
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
+                    <CreditCard className="h-4 w-4 text-slate-400" />
+                    {billing!.cardBrand} ···· {billing!.cardLast4}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    className="!py-1 !px-2 text-xs"
+                    onClick={() => save({ billing: { cardBrand: '', cardLast4: '' } })}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <span className="text-sm text-slate-400">No card on file</span>
+              )}
+            </Row>
+
+            {!hasCard && (
+              <div className="mt-3 grid max-w-md gap-2 sm:grid-cols-2">
+                <input
+                  placeholder="Card number"
+                  value={cardNum}
+                  onChange={(e) => setCardNum(e.target.value)}
+                  className={`${selectCls} w-full sm:col-span-2`}
+                  inputMode="numeric"
+                />
+                <input placeholder="MM / YY" value={cardExp} onChange={(e) => setCardExp(e.target.value)} className={`${selectCls} w-full`} />
+                <input placeholder="CVC" value={cardCvc} onChange={(e) => setCardCvc(e.target.value)} className={`${selectCls} w-full`} inputMode="numeric" />
+                <div className="sm:col-span-2">
+                  <Button onClick={saveCard} disabled={cardNum.replace(/\D/g, '').length < 13}>
+                    Save card
+                  </Button>
+                  <span className="ml-2 text-xs text-slate-400">Use any number, e.g. 4242 4242 4242 4242</span>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-5">
+              <p className="mb-2 text-sm font-medium text-slate-600">Invoices</p>
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs text-slate-400">
+                  <tr>
+                    <th className="py-1 font-medium">Date</th>
+                    <th className="font-medium">Amount</th>
+                    <th className="font-medium">Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {['2026-06-01', '2026-05-01', '2026-04-01'].map((d) => (
+                    <tr key={d}>
+                      <td className="py-2 text-slate-700">{d}</td>
+                      <td className="text-slate-700">{tierPrice}</td>
+                      <td>
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Paid</span>
+                      </td>
+                      <td className="text-right">
+                        <button
+                          onClick={() => alert('Demo invoice — no PDF in this build.')}
+                          className="text-xs text-brand-600 hover:underline"
+                        >
+                          Receipt
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

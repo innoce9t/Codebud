@@ -31,8 +31,18 @@ function readStoredWidth(): number {
   return isNaN(stored) ? DEFAULT_DRAWER_WIDTH : Math.max(240, Math.min(600, stored));
 }
 
+const OPEN_KEY = 'cb-chat-open';
+// Open by default; a manual close is remembered across pages and reloads.
+function readStoredOpen(): boolean {
+  return localStorage.getItem(OPEN_KEY) !== '0';
+}
+function persistOpen(open: boolean): boolean {
+  localStorage.setItem(OPEN_KEY, open ? '1' : '0');
+  return open;
+}
+
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(readStoredOpen);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [chatMode, setChatMode] = useState<ChatMode>('ask');
@@ -42,15 +52,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const openChat = useCallback((sessionId?: string) => {
     if (sessionId) setActiveSessionId(sessionId);
-    setChatOpen(true);
+    setChatOpen(persistOpen(true));
   }, []);
 
-  const closeChat = useCallback(() => setChatOpen(false), []);
-  const toggleChat = useCallback(() => setChatOpen((o) => !o), []);
+  const closeChat = useCallback(() => setChatOpen(persistOpen(false)), []);
+  const toggleChat = useCallback(() => setChatOpen((o) => persistOpen(!o)), []);
 
   const setActiveSession = useCallback((sessionId: string) => {
     setActiveSessionId(sessionId);
-    setChatOpen(true);
+    setChatOpen(persistOpen(true));
   }, []);
 
   const setCurrentProject = useCallback((projectId: string | null) => {

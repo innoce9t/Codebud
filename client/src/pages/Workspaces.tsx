@@ -37,7 +37,7 @@ export default function Workspaces() {
   const byType = (type: ProjectType) => (projects ?? []).filter((p) => p.type === type);
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
       <PageHeader
         title="Workspaces"
         subtitle="All your projects, grouped by workspace."

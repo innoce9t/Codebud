@@ -1,5 +1,5 @@
-import type { AiProvider, AiRequest } from './types.js';
-import { buildSystemPrompt, buildContextMessage } from './prompt.js';
+import type { AiProvider, AiRequest, GenerationParams } from './types.js';
+import { buildSystemPrompt, buildContextMessage, withBehaviour } from './prompt.js';
 
 /**
  * Google Gemini provider via the Generative Language REST API (no SDK needed).
@@ -11,6 +11,7 @@ async function geminiGenerate(
   system: string,
   contents: unknown,
   maxOutputTokens: number,
+  params?: GenerationParams,
 ): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     model,
@@ -21,7 +22,11 @@ async function geminiGenerate(
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
       contents,
-      generationConfig: { maxOutputTokens },
+      generationConfig: {
+        maxOutputTokens,
+        ...(params?.temperature !== undefined ? { temperature: params.temperature } : {}),
+        ...(params?.topP !== undefined ? { topP: params.topP } : {}),
+      },
     }),
   });
   if (!res.ok) {
@@ -47,7 +52,15 @@ export function createGoogleProvider(apiKey: string, model: string): AiProvider 
         { role: 'user', parts: [{ text: req.message }] },
       ];
 
-      const raw = await geminiGenerate(apiKey, model, req.systemOverride ?? buildSystemPrompt(req, req.mode), contents, 4096);
+      const p = req.params;
+      const raw = await geminiGenerate(
+        apiKey,
+        model,
+        withBehaviour(req.systemOverride ?? buildSystemPrompt(req, req.mode), p),
+        contents,
+        p?.maxTokens ?? 4096,
+        p,
+      );
       return { raw };
     },
     async completeText({ system, user, maxTokens }) {

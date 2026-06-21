@@ -39,12 +39,17 @@ function makeProvider(config: ProviderConfig): AiProvider {
       return createOpenAiProvider(config.apiKey, config.model);
     case 'google':
       return createGoogleProvider(config.apiKey, config.model);
+    case 'custom':
+      // OpenAI-compatible endpoint (local/self-hosted) at a custom base URL.
+      return createOpenAiProvider(config.apiKey, config.model, config.baseUrl, 'custom');
   }
 }
 
 export async function runAi(req: AiRequest, config?: ProviderConfig): Promise<AiResponse> {
   const provider = config ? makeProvider(config) : getEnvProvider();
-  const { raw } = await provider.complete(req);
+  // Generation params travel with the config; attach them to the request so providers apply them.
+  const reqWithParams = config?.params && !req.params ? { ...req, params: config.params } : req;
+  const { raw } = await provider.complete(reqWithParams);
   return parseAiResponse(raw);
 }
 

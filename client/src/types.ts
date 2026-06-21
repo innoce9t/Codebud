@@ -4,6 +4,14 @@ export interface UserPreferences {
   language: string;
   timezone: string;
   theme: { mode: 'light' | 'dark' | 'system'; accent: string };
+  ai: {
+    temperature: number;
+    maxTokens: number;
+    topP: number;
+    responseStyle: 'concise' | 'balanced' | 'detailed';
+    systemInstruction: string;
+    custom: { baseUrl: string; model: string };
+  };
   editor: {
     fontSize: number;
     tabSize: number;
@@ -44,6 +52,7 @@ export interface ProfilePatch {
     language?: string;
     timezone?: string;
     theme?: Partial<UserPreferences['theme']>;
+    ai?: Partial<Omit<UserPreferences['ai'], 'custom'>> & { custom?: Partial<UserPreferences['ai']['custom']> };
     editor?: Partial<UserPreferences['editor']>;
     keybindings?: Partial<UserPreferences['keybindings']>;
     notifications?: Partial<UserPreferences['notifications']>;
@@ -124,7 +133,15 @@ export interface CatalogProvider {
   last4: string | null;
 }
 
+export interface CustomModelInfo {
+  connected: boolean;
+  last4: string | null;
+  baseUrl: string;
+  model: string;
+}
+
 export interface AiCatalog {
   providers: CatalogProvider[];
+  custom?: CustomModelInfo;
   activeModel: string | null;
 }

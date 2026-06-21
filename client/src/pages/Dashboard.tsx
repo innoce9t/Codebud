@@ -29,7 +29,7 @@ export default function Dashboard() {
   const recent = (projects ?? []).slice(0, 6);
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
       <PageHeader
         title={`Welcome back${user?.name ? `, ${user.name}` : ''}`}
         subtitle="An overview of your projects and connected services."

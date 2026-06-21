@@ -1,6 +1,6 @@
-import { Check, Monitor, Moon, Sun } from 'lucide-react';
+import { Check, Monitor, Moon, Sun, Pipette } from 'lucide-react';
 import { PageHeader } from '../components/ui';
-import { ACCENTS, useTheme, type ThemeMode } from '../theme';
+import { ACCENTS, useTheme, isCustomAccent, type ThemeMode } from '../theme';
 
 const MODES: { id: ThemeMode; name: string; desc: string; Icon: typeof Sun }[] = [
   { id: 'light', name: 'Light', desc: 'Always use the light theme.', Icon: Sun },
@@ -10,9 +10,11 @@ const MODES: { id: ThemeMode; name: string; desc: string; Icon: typeof Sun }[] =
 
 export default function Theme() {
   const { mode, accent, resolvedMode, setMode, setAccent } = useTheme();
+  const customActive = isCustomAccent(accent);
+  const customColor = customActive ? accent : '#4f46e5';
 
   return (
-    <div className="mx-auto max-w-3xl px-8 py-10">
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
       <PageHeader title="Theme" subtitle="Personalize how CodeBud looks." />
 
       <div className="space-y-6">
@@ -73,6 +75,37 @@ export default function Theme() {
                 </button>
               );
             })}
+
+            {/* Custom color picker */}
+            <label
+              className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition ${
+                customActive ? 'border-slate-400 ring-1 ring-slate-400/30' : 'border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <span
+                className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-1 ring-inset ring-black/10"
+                style={{ background: customActive ? customColor : undefined }}
+              >
+                {customActive ? (
+                  <Check className="h-4 w-4 text-white" />
+                ) : (
+                  <Pipette className="h-4 w-4 text-slate-500" />
+                )}
+                <input
+                  type="color"
+                  value={customColor}
+                  onChange={(e) => setAccent(e.target.value)}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                  aria-label="Pick a custom accent color"
+                />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-slate-800">Custom</span>
+                {customActive && (
+                  <span className="block font-mono text-xs uppercase text-slate-400">{accent}</span>
+                )}
+              </span>
+            </label>
           </div>
         </section>
 

@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from '../../config/env.js';
 import type { AiProvider, AiRequest } from './types.js';
-import { buildSystemPrompt, buildContextMessage } from './prompt.js';
+import { buildSystemPrompt, buildContextMessage, withBehaviour } from './prompt.js';
 
 /** Anthropic provider. apiKey/model default to the env config when omitted. */
 export function createAnthropicProvider(apiKey?: string, model?: string): AiProvider {
@@ -15,10 +15,13 @@ export function createAnthropicProvider(apiKey?: string, model?: string): AiProv
         ...req.history.map((h) => ({ role: h.role, content: h.content }) as Anthropic.MessageParam),
         { role: 'user', content: req.message },
       ];
+      const p = req.params;
       const res = await client.messages.create({
         model: chosenModel,
-        max_tokens: 4096,
-        system: req.systemOverride ?? buildSystemPrompt(req, req.mode),
+        max_tokens: p?.maxTokens ?? 4096,
+        ...(p?.temperature !== undefined ? { temperature: p.temperature } : {}),
+        ...(p?.topP !== undefined ? { top_p: p.topP } : {}),
+        system: withBehaviour(req.systemOverride ?? buildSystemPrompt(req, req.mode), p),
         messages,
       });
       const raw = res.content

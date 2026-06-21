@@ -82,7 +82,7 @@ export default function Workspace() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
       <button
         onClick={() => nav('/new')}
         className="mb-4 flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"

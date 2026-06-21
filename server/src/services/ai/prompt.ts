@@ -1,4 +1,25 @@
-import type { AiRequest, ChatMode } from './types.js';
+import type { AiRequest, ChatMode, GenerationParams } from './types.js';
+
+const STYLE_INSTRUCTION: Record<string, string> = {
+  concise: 'Response style: be brief and to the point. Short paragraphs, minimal preamble, no filler.',
+  balanced: '',
+  detailed:
+    'Response style: be thorough. Explain your reasoning and include relevant examples and edge cases.',
+};
+
+/**
+ * Fold the user's tunable behaviour into a system prompt: response-style guidance
+ * and any custom instruction they configured in AI Settings.
+ */
+export function withBehaviour(system: string, params?: GenerationParams): string {
+  if (!params) return system;
+  const extra: string[] = [];
+  const style = params.responseStyle ? STYLE_INSTRUCTION[params.responseStyle] : '';
+  if (style) extra.push(style);
+  const custom = params.systemInstruction?.trim();
+  if (custom) extra.push(`The user has set these custom instructions — follow them:\n${custom}`);
+  return extra.length ? `${system}\n\n${extra.join('\n\n')}` : system;
+}
 
 const MODE_INSTRUCTION: Record<ChatMode, string> = {
   ask:
@@ -15,7 +36,8 @@ const MODE_INSTRUCTION: Record<ChatMode, string> = {
 };
 
 const APP_ROUTES = `
-App pages (reference as markdown links so the user can click through):
+App pages — reference these as clickable markdown links when relevant (the user clicks
+to go there; do NOT navigate them automatically):
 - [Dashboard](/) — project overview and quick-start templates
 - [New Project](/new) — create a project (pick JavaScript, Python, or Website workspace)
 - [Workspaces](/workspaces) — view all projects grouped by workspace
@@ -24,14 +46,10 @@ App pages (reference as markdown links so the user can click through):
 - [Settings](/settings) — account, editor preferences, keybindings, billing
 - [Profile](/profile) — name and account info
 
-Navigating the user:
-- To ACTIVELY take the user to a page, include a directive on its own line:
-  [[navigate:/workspaces]]
-  The app immediately routes them there. Use it when the user asks to go somewhere
-  or when guiding them through a task (e.g. creating a project, connecting a model).
-- The directive is hidden from the user, so ALSO say in prose where you've taken them
-  and what to do next. Use at most ONE navigate directive per reply, and only navigate
-  when it genuinely helps — don't navigate away mid-explanation.`;
+You are working inside the user's open project. Stay focused on it — never pull the user out of
+their project. If something belongs in a different project (e.g. a browser game in a Node project),
+recommend it and give them the [New Project](/new) link to follow themselves; do not switch pages
+for them.`;
 
 /**
  * The edit protocol: the model returns normal markdown, and whenever it wants
