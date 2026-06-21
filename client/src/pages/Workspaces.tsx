@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Plus, Trash2 } from 'lucide-react';
+import { ArrowRight, Plus, Search, Trash2 } from 'lucide-react';
 import { PageHeader, Button, Spinner } from '../components/ui';
 import { WORKSPACE_LIST } from '../workspaceMeta';
 import { projectApi } from '../api';
@@ -13,6 +13,9 @@ export default function Workspaces() {
   const { user } = useAuth();
   const confirm = useConfirm();
   const [projects, setProjects] = useState<Project[] | null>(null);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'updated' | 'created' | 'name'>('updated');
+  const [ownerFilter, setOwnerFilter] = useState<'all' | 'mine' | 'shared'>('all');
 
   async function refresh() {
     setProjects(await projectApi.list());
@@ -20,6 +23,24 @@ export default function Workspaces() {
   useEffect(() => {
     refresh();
   }, []);
+
+  // Apply search + owner filter + sort across all workspace groups.
+  const visible = useMemo(() => {
+    if (!projects) return null;
+    const q = search.trim().toLowerCase();
+    const list = projects.filter((p) => {
+      const mine = !!user && p.owner === user._id;
+      if (ownerFilter === 'mine' && !mine) return false;
+      if (ownerFilter === 'shared' && mine) return false;
+      if (q && !`${p.name} ${p.description ?? ''}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    return list.sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      const key = sortBy === 'created' ? 'createdAt' : 'updatedAt';
+      return new Date(b[key] ?? 0).getTime() - new Date(a[key] ?? 0).getTime();
+    });
+  }, [projects, search, sortBy, ownerFilter, user]);
 
   async function remove(id: string, e: React.MouseEvent) {
     e.stopPropagation();
@@ -34,7 +55,8 @@ export default function Workspaces() {
     refresh();
   }
 
-  const byType = (type: ProjectType) => (projects ?? []).filter((p) => p.type === type);
+  const byType = (type: ProjectType) => (visible ?? []).filter((p) => p.type === type);
+  const filtersActive = search.trim() !== '' || ownerFilter !== 'all';
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
@@ -47,6 +69,38 @@ export default function Workspaces() {
           </Button>
         }
       />
+
+      {projects && projects.length > 0 && (
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search projects…"
+              className="w-full rounded-lg border border-slate-300 bg-surface py-1.5 pl-8 pr-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            />
+          </div>
+          <select
+            value={ownerFilter}
+            onChange={(e) => setOwnerFilter(e.target.value as typeof ownerFilter)}
+            className="rounded-lg border border-slate-300 bg-surface px-2.5 py-1.5 text-sm text-slate-700 outline-none focus:border-brand-500"
+          >
+            <option value="all">All projects</option>
+            <option value="mine">Owned by me</option>
+            <option value="shared">Shared with me</option>
+          </select>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            className="rounded-lg border border-slate-300 bg-surface px-2.5 py-1.5 text-sm text-slate-700 outline-none focus:border-brand-500"
+          >
+            <option value="updated">Recently updated</option>
+            <option value="created">Recently created</option>
+            <option value="name">Name (A–Z)</option>
+          </select>
+        </div>
+      )}
 
       {projects === null ? (
         <div className="flex justify-center py-20">
@@ -80,10 +134,16 @@ export default function Workspaces() {
 
                 {items.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-slate-300 bg-surface px-5 py-8 text-center text-sm text-slate-500">
-                    No {w.title.replace(' Workspace', '')} projects yet.{' '}
-                    <button onClick={() => nav(`/workspace/${w.type}`)} className="font-medium text-brand-600 hover:underline">
-                      Create one
-                    </button>
+                    {filtersActive ? (
+                      <>No matching {w.title.replace(' Workspace', '')} projects.</>
+                    ) : (
+                      <>
+                        No {w.title.replace(' Workspace', '')} projects yet.{' '}
+                        <button onClick={() => nav(`/workspace/${w.type}`)} className="font-medium text-brand-600 hover:underline">
+                          Create one
+                        </button>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
