@@ -7,20 +7,28 @@ in-browser runtime, and a project-aware AI chat that can read and modify your fi
 
 ![stack](https://img.shields.io/badge/stack-React%20%7C%20Express%20%7C%20MongoDB%20%7C%20Socket.io-4f46e5)
 
+**Live demo:** https://codebud-598265206881.us-central1.run.app
+(running with the **mock** AI provider — connect your own Claude/OpenAI/Gemini key under
+Settings → AI Settings to enable real AI).
+
 ---
 
 ## ✨ Features
 
 | Area | What you get |
 | --- | --- |
-| **Auth** | Signup / login with bcrypt-hashed passwords and **httpOnly JWT cookies**. Every project is scoped to its owner. |
-| **Workspaces** | Three card-based environments on the dashboard, each isolating its own projects. |
-| **Projects** | Create / list / open / delete. New projects are seeded with runnable starter files. |
-| **Editor** | Monaco editor with syntax highlighting, a nested **file explorer**, create / rename / delete, and **debounced autosave**. |
-| **AI chat** | Per-project chat history. The AI sees all project files, answers questions, suggests improvements, and **creates/updates/deletes files** via a structured edit protocol. Pluggable provider (**Claude / OpenAI / mock**). |
-| **Run & preview** | **JS** runs sandboxed in an iframe with module-import resolution; **Python** runs in-browser via **Pyodide**; **websites** get an instant **live preview**. |
-| **Realtime** | Socket.io broadcasts file changes and live keystrokes to collaborators in the same project. |
+| **Auth** | Signup / login with bcrypt-hashed passwords and **httpOnly JWT cookies**; password reset flow. Every project is scoped to its owner/collaborators. |
+| **Workspaces** | Three card-based environments (JavaScript / Python / Website). Browse projects with **search, owner filter, and sort** on both the overview and per-type pages. |
+| **Projects** | Create / list / open / delete, each seeded from selectable **quick-start templates**. File type is validated per workspace. |
+| **Editor** | Monaco editor, nested **file explorer** (create / rename / delete / **upload**), **debounced autosave**, and **predictive inline AI completions** (ghost text). Dedicated single-pane tabbed layout on mobile. |
+| **AI chat** | Per-project chat sessions (history retained per project) plus a general app-wide chat. The AI reads all project files, answers questions, suggests improvements, and **creates/updates/deletes files** via a structured edit protocol. **Ask / Plan / Agent** modes, with optional approval before edits apply. |
+| **AI providers & tuning** | Connect **Claude, GPT, or Gemini** keys, or a **custom OpenAI-compatible / local endpoint** (Ollama, LM Studio, vLLM). Tune **temperature, top-P, max tokens, response style, and a custom system behaviour** — applied to every request. Keys are AES-256-GCM encrypted at rest. |
+| **Run & preview** | **JS** runs sandboxed in an iframe with module-import resolution; **Python** runs in-browser via **Pyodide**; **websites** get an instant **live preview** (Tailwind inlined into the sandboxed iframe so it works offline / behind ad-blockers). |
+| **Realtime** | Socket.io broadcasts file changes and live presence to collaborators in the same project. |
+| **Sharing** | Invite collaborators by email, or enable a Google-Docs-style **"anyone with the link"** share; add/remove people and revoke the link. |
 | **Version history** | Every save snapshots the previous content; browse and **restore** any prior version. |
+| **Personalization** | Light / dark / system theme with preset **and custom** accent colors; configurable editor preferences and **remappable keyboard shortcuts**. |
+| **PWA & mobile** | Installable Progressive Web App (manifest + service worker) with a responsive, mobile-friendly UI. |
 
 ---
 
@@ -31,18 +39,23 @@ codebud/
 ├─ server/                 # Express + TypeScript API
 │  └─ src/
 │     ├─ config/           # env + Mongo connection
-│     ├─ models/           # User, Project, File (with versions), ChatMessage
+│     ├─ models/           # User, Project, File (with versions), ChatMessage, Session, ProviderKey
 │     ├─ middleware/       # auth (JWT), error handling
-│     ├─ routes/           # auth, projects, files, chat
+│     ├─ routes/           # auth, projects, files, chat, sessions, ai, complete, templates, helpers
 │     ├─ services/
-│     │  ├─ ai/            # provider abstraction (anthropic | openai | mock) + edit protocol
+│     │  ├─ ai/            # provider abstraction (anthropic | openai | google | custom | mock),
+│     │  │                 #   prompt building, edit-protocol parsing, model catalog, resolve
 │     │  └─ fileService.ts # apply edits with version history
-│     └─ realtime/         # Socket.io (rooms per project)
+│     ├─ realtime/         # Socket.io (rooms per project, presence)
+│     └─ utils/            # crypto (AES-256-GCM), jwt, http helpers
 └─ client/                 # Vite + React + TypeScript + Tailwind
    └─ src/
-      ├─ pages/            # AuthPage, Dashboard, Workspace, Editor, Settings, Theme, AI Models
-      ├─ components/       # FileExplorer, CodeEditor, GlobalChatDrawer, OutputPanel, VersionHistory
-      └─ runners/          # website preview, JS module runner, Python (Pyodide)
+      ├─ pages/            # Auth, Dashboard, NewProject, Workspace(s), Editor, Settings, Theme, AiModels, Profile, Docs
+      ├─ components/       # FileExplorer, CodeEditor, GlobalChatDrawer, OutputPanel, VersionHistory, ShareModal, ui
+      ├─ context/          # ChatContext (drawer + session state)
+      ├─ hooks/            # useResizable, useIsMobile
+      ├─ runners/          # website preview, JS module runner, Python (Pyodide)
+      └─ theme.tsx, auth.tsx, api.ts, keybindings.ts
 ```
 
 **AI edit protocol:** the model replies in markdown and emits fenced blocks
@@ -194,16 +207,20 @@ Notes:
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `POST` | `/api/auth/signup` \| `/login` \| `/logout` | Auth |
-| `GET` | `/api/auth/me` | Current user |
-| `GET/POST` | `/api/projects` | List / create projects |
-| `GET/PATCH/DELETE` | `/api/projects/:id` | Read / update / delete a project |
+| `POST` | `/api/auth/signup` \| `/login` \| `/logout` · `/forgot-password` · `/reset-password` | Auth |
+| `GET/PATCH/DELETE` | `/api/auth/me` | Current user · update profile/preferences · delete account |
+| `GET/POST` | `/api/projects` | List (with owner name) / create projects |
+| `GET/PATCH/DELETE` | `/api/projects/:id` | Read / rename / delete a project |
 | `GET/POST` | `/api/projects/:id/files` | List / create files |
 | `PUT/PATCH/DELETE` | `/api/projects/:id/files/:fileId` | Save / rename / delete |
 | `GET/POST` | `/api/projects/:id/files/:fileId/versions` · `/restore` | Version history |
-| `GET/POST/DELETE` | `/api/projects/:id/chat` | Chat history / send / clear |
+| `GET/POST/DELETE` | `/api/projects/:id/collaborators` · `/share` · `/join` | Sharing (email invite + link) |
+| `POST` | `/api/projects/:id/complete` | Inline code completion (ghost text) |
+| `GET/POST/DELETE` | `/api/sessions` · `/:id/messages` · `/apply` · `/pending` | AI chat sessions, messages, edit approval |
+| `GET` | `/api/ai/catalog` · `PUT/DELETE /api/ai/providers/:p` · `PUT /api/ai/active` | Provider keys + active model |
+| `GET` | `/api/templates` | Quick-start template catalog |
 
-All project/file/chat routes require auth and verify ownership.
+All project/file/chat/session routes require auth and verify ownership (or collaborator access).
 
 ---
 
@@ -218,5 +235,7 @@ All project/file/chat routes require auth and verify ownership.
 
 ## 📝 Notes & trade-offs
 - **Code execution is client-side and sandboxed** (iframe for JS, Pyodide/WASM for Python). This avoids a risky server-side sandbox while still giving real execution.
+- The website **live preview** runs in an iframe sandboxed *without* `allow-same-origin` (so untrusted project/collaborator code can't reach the app), and Tailwind is **inlined** into the preview document — no external CDN dependency, so it renders offline and behind ad-blockers.
+- AI provider keys are **encrypted at rest** (AES-256-GCM); only the last 4 chars are ever returned to the client.
 - File storage is path-based, which supports nested folders without a separate collection.
 - Version history is capped (30 snapshots/file) to bound document growth.
