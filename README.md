@@ -102,6 +102,13 @@ npm run build
 npm start              # serves the compiled API
 ```
 
+### Test
+```bash
+npm test --workspace server   # API tests (auth, ownership isolation, project CRUD)
+```
+Uses an in-memory MongoDB (`mongodb-memory-server`) — no database needed. The first
+run downloads a MongoDB binary, then it's cached.
+
 ---
 
 ## 🐳 Run with Docker
