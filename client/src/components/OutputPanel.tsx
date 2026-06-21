@@ -21,22 +21,44 @@ export default function OutputPanel({ type, files }: Props) {
   return <ConsoleRunner type={type} files={files} />;
 }
 
+// Vendored Tailwind source, fetched once (same-origin) and shared across previews. It is
+// INLINED into the sandboxed preview doc because the iframe (no allow-same-origin) cannot
+// fetch it as a cross-origin subresource.
+let tailwindSrcPromise: Promise<string> | null = null;
+function loadTailwindSrc(): Promise<string> {
+  if (!tailwindSrcPromise) {
+    tailwindSrcPromise = fetch('/vendor/tailwind.js')
+      .then((r) => (r.ok ? r.text() : ''))
+      .catch(() => '');
+  }
+  return tailwindSrcPromise;
+}
+
 function WebsitePreview({ files }: { files: FileNode[] }) {
   const [auto, setAuto] = useState(true);
   const [doc, setDoc] = useState('');
-  const rebuild = () => setDoc(buildPreviewDoc(files));
+  const [tw, setTw] = useState<string | undefined>(undefined);
+  const rebuild = () => setDoc(buildPreviewDoc(files, tw));
 
   useEffect(() => {
-    if (auto) setDoc(buildPreviewDoc(files));
+    let alive = true;
+    loadTailwindSrc().then((src) => alive && setTw(src));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (auto) setDoc(buildPreviewDoc(files, tw));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files, auto]);
+  }, [files, auto, tw]);
 
   // Allow a keyboard shortcut (Ctrl/Cmd+Enter) to refresh the preview.
   useEffect(() => {
-    const onRun = () => setDoc(buildPreviewDoc(files));
+    const onRun = () => setDoc(buildPreviewDoc(files, tw));
     window.addEventListener('codebud:run', onRun);
     return () => window.removeEventListener('codebud:run', onRun);
-  }, [files]);
+  }, [files, tw]);
 
   return (
     <div className="flex h-full flex-col bg-surface">

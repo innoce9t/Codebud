@@ -21,9 +21,15 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
-// Register the PWA service worker (production builds only).
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  });
+// PWA service worker — production only. In dev, actively remove any stale SW (e.g. left over
+// from a previous `vite preview`/prod run) and clear its caches so it can't serve old code.
+if ('serviceWorker' in navigator) {
+  if (import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  } else {
+    navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
+    if (window.caches) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+  }
 }
