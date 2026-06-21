@@ -29,7 +29,17 @@ router.get(
       $or: [{ owner: req.userId }, { 'collaborators.user': req.userId }],
     };
     if (typeof req.query.type === 'string') filter.type = req.query.type;
-    const projects = await Project.find(filter).sort({ updatedAt: -1 });
+    const docs = await Project.find(filter).sort({ updatedAt: -1 });
+
+    // Attach the owner's display name/email (so the UI can show "Shared by …").
+    const ownerIds = [...new Set(docs.map((d) => String(d.owner)))];
+    const owners = await User.find({ _id: { $in: ownerIds } }).select('name email');
+    const ownerMap = new Map(owners.map((u) => [u.id, { name: u.name, email: u.email }]));
+    const projects = docs.map((d) => {
+      const o = ownerMap.get(String(d.owner));
+      // toJSON() strips shareToken/__v; then we add the owner fields.
+      return { ...d.toJSON(), ownerName: o?.name ?? '', ownerEmail: o?.email ?? '' };
+    });
     res.json({ projects });
   }),
 );

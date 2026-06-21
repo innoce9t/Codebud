@@ -111,6 +111,11 @@ export default function Workspaces() {
                           </button>
                         </div>
                         <p className="mt-1 line-clamp-2 text-sm text-slate-500">{p.description || 'No description'}</p>
+                        {user && p.owner !== user._id && (p.ownerName || p.ownerEmail) && (
+                          <p className="mt-2 text-xs text-slate-400">
+                            Shared by <span className="font-medium text-slate-500">{p.ownerName || p.ownerEmail}</span>
+                          </p>
+                        )}
                         <p className="mt-4 text-xs text-slate-400">
                           Updated {new Date(p.updatedAt).toLocaleString()}
                         </p>

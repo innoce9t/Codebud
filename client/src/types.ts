@@ -65,6 +65,8 @@ export interface Project {
   description?: string;
   type: ProjectType;
   owner: string;
+  ownerName?: string;
+  ownerEmail?: string;
   collaborators?: string[];
   createdAt: string;
   updatedAt: string;
