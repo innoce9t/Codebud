@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useResizable } from '../hooks/useResizable';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { History, Keyboard, PanelBottom, PanelBottomClose, Share2 } from 'lucide-react';
+import { Eye, FileCode2, FolderTree, History, Keyboard, PanelBottom, PanelBottomClose, Share2, Terminal } from 'lucide-react';
 import FileExplorer from '../components/FileExplorer';
 import CodeEditor from '../components/CodeEditor';
 import OutputPanel from '../components/OutputPanel';
@@ -56,6 +57,9 @@ export default function Editor() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [peers, setPeers] = useState<Peer[]>([]);
+  // Mobile: a single pane at a time, switched via a bottom tab bar.
+  const isMobile = useIsMobile();
+  const [mobileTab, setMobileTab] = useState<'files' | 'editor' | 'output'>('editor');
 
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const active = files.find((f) => f._id === activeId) ?? null;
@@ -352,80 +356,154 @@ export default function Editor() {
         )}
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        {/* Explorer */}
-        <aside className="relative flex shrink-0 border-r border-slate-200" style={{ width: explorer.width }}>
-          <div className="min-w-0 flex-1 overflow-hidden">
-            <FileExplorer
-              files={files}
-              activeId={activeId}
-              accept={acceptAttr(project.type)}
-              onSelect={(f) => setActiveId(f._id)}
-              onCreate={createFile}
-              onUpload={handleUpload}
-              onDelete={deleteFile}
-              onRename={renameFile}
-            />
-          </div>
-          {/* Drag handle */}
-          <div
-            onMouseDown={explorer.handleMouseDown}
-            className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-brand-400/40 active:bg-brand-500/60 transition-colors"
-            title="Drag to resize"
-          />
-        </aside>
-
-        {/* Editor + output */}
-        <main className="flex min-w-0 flex-1 flex-col bg-surface">
-          <div className="flex items-center justify-between border-b border-slate-200 bg-surface px-3 py-1.5">
-            <span className="truncate text-sm text-slate-600">{active ? active.path : 'No file selected'}</span>
-            <div className="flex items-center gap-2">
+      {isMobile ? (
+        /* ── Mobile: one pane at a time + bottom tab bar ── */
+        <div className="flex min-h-0 flex-1 flex-col">
+          {/* Compact action toolbar */}
+          <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-surface px-3 py-1.5">
+            <span className="min-w-0 truncate text-sm text-slate-600">{active ? active.path : 'No file selected'}</span>
+            <div className="flex shrink-0 items-center gap-1">
               {isOwner && (
-                <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowShare(true)} title="Share project">
-                  <Share2 className="h-3.5 w-3.5" /> Share
+                <Button variant="ghost" className="!py-1 !px-1.5 text-xs" onClick={() => setShowShare(true)} title="Share project">
+                  <Share2 className="h-3.5 w-3.5" />
                 </Button>
               )}
-              <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowShortcuts(true)} title="Keyboard shortcuts (?)">
-                <Keyboard className="h-3.5 w-3.5" /> Shortcuts
-              </Button>
               {active && (
-                <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowHistory(true)}>
-                  <History className="h-3.5 w-3.5" /> History
+                <Button variant="ghost" className="!py-1 !px-1.5 text-xs" onClick={() => setShowHistory(true)} title="Version history">
+                  <History className="h-3.5 w-3.5" />
                 </Button>
               )}
-              <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowOutput((s) => !s)}>
-                {showOutput ? <PanelBottomClose className="h-3.5 w-3.5" /> : <PanelBottom className="h-3.5 w-3.5" />}
-                {showOutput ? 'Hide' : 'Show'} {project.type === 'website' ? 'Preview' : 'Console'}
+              <Button variant="ghost" className="!py-1 !px-1.5 text-xs" onClick={() => setShowShortcuts(true)} title="Keyboard shortcuts">
+                <Keyboard className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1">
-              {active ? (
-                <CodeEditor
-                  projectId={project._id}
-                  path={active.path}
-                  value={active.content}
-                  onChange={handleChange}
-                />
+          {/* Active pane */}
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {mobileTab === 'files' && (
+              <FileExplorer
+                files={files}
+                activeId={activeId}
+                accept={acceptAttr(project.type)}
+                onSelect={(f) => { setActiveId(f._id); setMobileTab('editor'); }}
+                onCreate={createFile}
+                onUpload={handleUpload}
+                onDelete={deleteFile}
+                onRename={renameFile}
+              />
+            )}
+            {mobileTab === 'editor' &&
+              (active ? (
+                <CodeEditor projectId={project._id} path={active.path} value={active.content} onChange={handleChange} />
               ) : (
-                <div className="flex h-full items-center justify-center text-slate-400">
-                  Select or create a file to start editing.
+                <div className="flex h-full items-center justify-center px-6 text-center text-sm text-slate-400">
+                  Open the Files tab to select or create a file.
+                </div>
+              ))}
+            {mobileTab === 'output' && <OutputPanel type={project.type} files={files} />}
+          </div>
+
+          {/* Bottom tab bar */}
+          <nav className="grid grid-cols-3 border-t border-slate-200 bg-surface">
+            {([
+              { id: 'files', label: 'Files', Icon: FolderTree },
+              { id: 'editor', label: 'Editor', Icon: FileCode2 },
+              {
+                id: 'output',
+                label: project.type === 'website' ? 'Preview' : 'Console',
+                Icon: project.type === 'website' ? Eye : Terminal,
+              },
+            ] as const).map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                onClick={() => setMobileTab(id)}
+                className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition ${
+                  mobileTab === id ? 'text-brand-600' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <Icon className="h-4 w-4" /> {label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      ) : (
+        /* ── Desktop: 3-pane (explorer | editor + output) ── */
+        <div className="flex min-h-0 flex-1">
+          {/* Explorer */}
+          <aside className="relative flex shrink-0 border-r border-slate-200" style={{ width: explorer.width }}>
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <FileExplorer
+                files={files}
+                activeId={activeId}
+                accept={acceptAttr(project.type)}
+                onSelect={(f) => setActiveId(f._id)}
+                onCreate={createFile}
+                onUpload={handleUpload}
+                onDelete={deleteFile}
+                onRename={renameFile}
+              />
+            </div>
+            {/* Drag handle */}
+            <div
+              onMouseDown={explorer.handleMouseDown}
+              className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-brand-400/40 active:bg-brand-500/60 transition-colors"
+              title="Drag to resize"
+            />
+          </aside>
+
+          {/* Editor + output */}
+          <main className="flex min-w-0 flex-1 flex-col bg-surface">
+            <div className="flex items-center justify-between border-b border-slate-200 bg-surface px-3 py-1.5">
+              <span className="truncate text-sm text-slate-600">{active ? active.path : 'No file selected'}</span>
+              <div className="flex items-center gap-2">
+                {isOwner && (
+                  <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowShare(true)} title="Share project">
+                    <Share2 className="h-3.5 w-3.5" /> Share
+                  </Button>
+                )}
+                <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowShortcuts(true)} title="Keyboard shortcuts (?)">
+                  <Keyboard className="h-3.5 w-3.5" /> Shortcuts
+                </Button>
+                {active && (
+                  <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowHistory(true)}>
+                    <History className="h-3.5 w-3.5" /> History
+                  </Button>
+                )}
+                <Button variant="ghost" className="!py-1 !px-2 text-xs" onClick={() => setShowOutput((s) => !s)}>
+                  {showOutput ? <PanelBottomClose className="h-3.5 w-3.5" /> : <PanelBottom className="h-3.5 w-3.5" />}
+                  {showOutput ? 'Hide' : 'Show'} {project.type === 'website' ? 'Preview' : 'Console'}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1">
+                {active ? (
+                  <CodeEditor
+                    projectId={project._id}
+                    path={active.path}
+                    value={active.content}
+                    onChange={handleChange}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-slate-400">
+                    Select or create a file to start editing.
+                  </div>
+                )}
+              </div>
+
+              {showOutput && (
+                <div className="h-2/5 min-h-[180px] border-t border-slate-200">
+                  <OutputPanel type={project.type} files={files} />
                 </div>
               )}
             </div>
+          </main>
 
-            {showOutput && (
-              <div className="h-2/5 min-h-[180px] border-t border-slate-200">
-                <OutputPanel type={project.type} files={files} />
-              </div>
-            )}
-          </div>
-        </main>
-
-        {/* Chat is rendered globally in AppLayout's GlobalChatDrawer */}
-      </div>
+          {/* Chat is rendered globally in AppLayout's GlobalChatDrawer */}
+        </div>
+      )}
 
       {showHistory && active && id && (
         <VersionHistory
