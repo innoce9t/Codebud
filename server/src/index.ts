@@ -8,7 +8,7 @@ async function main() {
   await connectDB();
   const app = createApp();
   const server = createServer(app);
-  initRealtime(server);
+  await initRealtime(server);
 
   server.listen(env.port, () => {
     console.log(`✓ CodeBud API listening on http://localhost:${env.port}`);

@@ -20,6 +20,9 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   clientOrigin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173',
   mongoUri: required('MONGODB_URI', 'mongodb://127.0.0.1:27017/codebud'),
+  // Optional: when set, Socket.io uses a Redis adapter so realtime works across
+  // multiple server instances (presence + broadcasts sync between them).
+  redisUrl: process.env.REDIS_URL ?? '',
   jwtSecret: required('JWT_SECRET', 'super-secret-change-me'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
   // Whether auth cookies require HTTPS. Defaults to NODE_ENV=production, but can
