@@ -12,3 +12,6 @@ coverage/
 .vite/
 # Large video assets (added at deploy time, not committed)
 *.mp4
+
+# Local portfolio/handover doc — not part of the repo
+PORTFOLIO.md
