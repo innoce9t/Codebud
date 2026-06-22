@@ -19,6 +19,11 @@ export function createOpenAiProvider(
     ...(baseUrl ? { baseURL: baseUrl } : {}),
   });
   const chosenModel = model || env.ai.openaiModel;
+  // Real OpenAI (GPT-5 / o-series) rejects the legacy `max_tokens` (requires
+  // `max_completion_tokens`) and non-default temperature/top_p. Custom / local
+  // OpenAI-compatible endpoints (Ollama, LM Studio, vLLM) use the classic params.
+  const isCustom = !!baseUrl;
+  const tokenLimit = (n: number) => (isCustom ? { max_tokens: n } : { max_completion_tokens: n });
   return {
     name,
     async complete(req: AiRequest) {
@@ -34,19 +39,26 @@ export function createOpenAiProvider(
         ),
         { role: 'user', content: req.message },
       ];
+      // Sampling params are only sent to custom endpoints; real OpenAI newer models
+      // forbid non-default values.
+      const sampling = isCustom
+        ? {
+            ...(p?.temperature !== undefined ? { temperature: p.temperature } : {}),
+            ...(p?.topP !== undefined ? { top_p: p.topP } : {}),
+          }
+        : {};
       const res = await client.chat.completions.create({
         model: chosenModel,
         messages,
-        max_tokens: p?.maxTokens ?? 4096,
-        ...(p?.temperature !== undefined ? { temperature: p.temperature } : {}),
-        ...(p?.topP !== undefined ? { top_p: p.topP } : {}),
+        ...tokenLimit(p?.maxTokens ?? 4096),
+        ...sampling,
       });
       return { raw: res.choices[0]?.message?.content ?? '' };
     },
     async completeText({ system, user, maxTokens }) {
       const res = await client.chat.completions.create({
         model: chosenModel,
-        max_tokens: maxTokens,
+        ...tokenLimit(maxTokens),
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user },

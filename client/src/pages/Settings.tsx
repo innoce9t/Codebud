@@ -338,7 +338,7 @@ function AiSettingsTab() {
               saveAi({ maxTokens: v });
             }}
           >
-            {[1024, 2048, 4096, 8192, 16000, 32000].map((n) => (
+            {[1024, 2048, 4096, 8192].map((n) => (
               <option key={n} value={n}>
                 {n.toLocaleString()}
               </option>

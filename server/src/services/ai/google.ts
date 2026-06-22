@@ -23,8 +23,9 @@ async function geminiGenerate(
       systemInstruction: { parts: [{ text: system }] },
       contents,
       generationConfig: {
-        maxOutputTokens,
-        ...(params?.temperature !== undefined ? { temperature: params.temperature } : {}),
+        // Cap output tokens so a high setting can't exceed a model's limit.
+        maxOutputTokens: Math.min(maxOutputTokens, 8192),
+        ...(params?.temperature !== undefined ? { temperature: Math.min(Math.max(params.temperature, 0), 2) } : {}),
         ...(params?.topP !== undefined ? { topP: params.topP } : {}),
       },
     }),
