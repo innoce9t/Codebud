@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Check, Cpu, Gem, Lock, Search, Server, Settings2, Sparkles } from 'lucide-react';
 import { PageHeader, Button, Spinner } from '../components/ui';
 import { aiApi } from '../api';
+import { useAuth } from '../auth';
 import type { AiCatalog } from '../types';
 
 const PROVIDER_ICON: Record<string, typeof Sparkles> = {
@@ -29,6 +30,7 @@ interface ModelRow {
 
 export default function AiModels() {
   const nav = useNavigate();
+  const { refreshUser } = useAuth();
   const [catalog, setCatalog] = useState<AiCatalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
@@ -95,6 +97,9 @@ export default function AiModels() {
     try {
       await aiApi.setActive(modelId);
       await refresh();
+      // Refresh the cached user so the open chat picks up the new active model
+      // immediately (otherwise it stays stale until a manual page reload).
+      await refreshUser();
     } catch (err) {
       setError((err as Error).message);
     } finally {

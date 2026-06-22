@@ -29,7 +29,7 @@ export default function GlobalChatDrawer() {
     drawerWidth: ctxWidth, setDrawerWidth,
     closeChat, setActiveSession, setChatMode,
   } = useChatContext();
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, refreshUser } = useAuth();
   const nav = useNavigate();
   const confirm = useConfirm();
 
@@ -110,6 +110,7 @@ export default function GlobalChatDrawer() {
     await aiApi.setActive(modelId);
     const fresh = await aiApi.catalog();
     setCatalog(fresh);
+    await refreshUser(); // keep cached user.activeModel in sync
   }
 
   function manageModels() {
